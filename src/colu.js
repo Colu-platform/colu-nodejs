@@ -4,18 +4,18 @@ var async = require('async')
 var request = require('request')
 
 var HDWallet = require('hdwallet')
-var CC = require('coloredcoinsd-wraper')
+var ColoredCoins = require('coloredcoinsd-wraper')
 
 var coluHost = 'https://engine.colu.co'
 var FEE = 1000
 
-Colu = function (args) {
+Colu = function (settings) {
   var self = this
 
-  self.coluHost = args.coluHost || coluHost
-
-  self.hdwallet = new HDWallet(args)
-  self.cc = new CC(args)
+  settings = settings || {}
+  self.coluHost = settings.coluHost || coluHost
+  self.hdwallet = new HDWallet(settings)
+  self.coloredCoins = new ColoredCoins(settings)
 
   self.hdwallet.on('connect', function () {
     self.emit('connect')
@@ -27,7 +27,7 @@ Colu = function (args) {
 }
 
 var signAndTransmit = function (txHex, privateKey ,last_txid, host, cb) {
-  var signedTxHex = CC.signTx(txHex, privateKey)
+  var signedTxHex = ColoredCoins.signTx(txHex, privateKey)
   var data_params = {
     last_txid: last_txid,
     tx_hex: signedTxHex
@@ -84,7 +84,7 @@ Colu.prototype.financedIssue = function (args, callback) {
           }
         })
       }
-      return self.cc.issue(args, cb)
+      return self.coloredCoins.issue(args, cb)
     },
     function (l_assetInfo, cb) {
       assetInfo = l_assetInfo
@@ -130,7 +130,7 @@ Colu.prototype.financedSend = function (args, callback) {
       last_txid = body.txid
       args.financeOutputTxid = last_txid
       args.financeOutput = body.vout
-      return self.cc.sendasset(args, cb)
+      return self.coloredCoins.sendasset(args, cb)
     },
     function (l_sendInfo, cb) {
       sendInfo = l_sendInfo
@@ -148,5 +148,7 @@ Colu.prototype.financedSend = function (args, callback) {
   ],
   callback)
 }
+
+
 
 module.exports = Colu
