@@ -26,6 +26,24 @@ Colu = function (args) {
   })
 }
 
+var signAndTransmit = function (txHex, privateKey ,last_txid, host, cb) {
+  var signedTxHex = CC.signTx(txHex, privateKey)
+  var data_params = {
+    last_txid: last_txid,
+    tx_hex: signedTxHex
+  }
+  request.post(host + '/transmit_financed', {form: data_params }, cb)
+}
+
+var askForFinance = function (company_public_key, purpose ,amount, host, cb) {
+  var data_params = {
+    company_public_key: company_public_key,
+    purpose: purpose,
+    amount: amount
+  }
+  request.post(host + '/ask_for_finance', {form: data_params}, cb)
+}
+
 util.inherits(Colu, events.EventEmitter)
 
 Colu.prototype.init = function () {
@@ -46,14 +64,7 @@ Colu.prototype.financedIssue = function (args, callback) {
   async.waterfall([
     // Ask for finance.
     function (cb) {
-      var data_params = {
-        company_public_key: publicKey.toHex(),
-        purpose: 'Issue',
-        amount: args.fee + FEE
-      }
-      request.post(self.coluHost + '/ask_for_finance',
-      {form: data_params },
-      cb)
+      askForFinance(publicKey.toHex(), 'Issue', args.fee + FEE, self.coluHost ,cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -73,20 +84,11 @@ Colu.prototype.financedIssue = function (args, callback) {
           }
         })
       }
-
       return self.cc.issue(args, cb)
     },
     function (l_assetInfo, cb) {
       assetInfo = l_assetInfo
-      var signedTxHex = CC.signTx(assetInfo.txHex, privateKey)
-      // console.log('signTx: ' + signedTxHex)
-      var data_params = {
-        last_txid: last_txid,
-        tx_hex: signedTxHex
-      }
-      request.post(self.coluHost + '/transmit_financed',
-      {form: data_params },
-      cb)
+      signAndTransmit(assetInfo.txHex, privateKey ,last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -118,14 +120,7 @@ Colu.prototype.financedSend = function (args, callback) {
     function (priv, cb) {
       privateKey = priv
       publicKey = privateKey.pub
-      var data_params = {
-        company_public_key: publicKey.toHex(),
-        purpose: 'Send',
-        amount: args.fee + FEE
-      }
-      request.post(self.coluHost + '/ask_for_finance',
-      {form: data_params },
-      cb)
+      askForFinance(publicKey.toHex(), 'Send', args.fee + FEE, self.coluHost ,cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -139,15 +134,7 @@ Colu.prototype.financedSend = function (args, callback) {
     },
     function (l_sendInfo, cb) {
       sendInfo = l_sendInfo
-      var signedTxHex = CC.signTx(sendInfo.txHex, privateKey)
-      // console.log('signTx: ' + signedTxHex)
-      var data_params = {
-        last_txid: last_txid,
-        tx_hex: signedTxHex
-      }
-      request.post(self.coluHost + '/transmit_financed',
-      {form: data_params },
-      cb)
+      signAndTransmit(sendInfo.txHex, privateKey ,last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
