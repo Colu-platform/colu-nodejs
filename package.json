@@ -4,7 +4,9 @@
   "description": "Colu SKD for engine and colored-coins api.",
   "main": "src/colu.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "coverage": "istanbul cover _mocha -- -R spec",
+    "coveralls": "cat ./coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
@@ -17,7 +19,16 @@
     "coins",
     "bitcoin"
   ],
-  "author": "bejavu <tal@colu.co>",
+  "contributors": [
+   {
+     "name": "Eliran Zach",
+     "email": "thehobbit85@gmail.com"
+   },
+   {
+     "name": "bejavu",
+     "email": "tal@colu.co"
+   }
+ ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Colu-platform/colu-nodejs/issues"
