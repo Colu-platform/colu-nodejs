@@ -15,8 +15,9 @@ describe('Test Colu SDK', function () {
 	var privateSeed
 	var toAddress = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
 	var assetId
+	var fromAddress
 
-	it('Should create and send financed issue tx.', function (done) {
+	it('Should create and broadcast financed issue tx.', function (done) {
 		this.timeout(30000)
 		var colu = new Colu(settings)
 		colu.on('connect', function () {
@@ -42,18 +43,21 @@ describe('Test Colu SDK', function () {
 	      assetId = ans.assetId
 	      expect(ans.txid).to.be.a('string')
 	      expect(ans.txid).to.have.length.above(0)
+	      expect(ans.receivingAddresses).to.be.a('array')
+	      expect(ans.receivingAddresses).to.have.length.above(0)
+				fromAddress = ans.receivingAddresses[0].address
 				done()
 			})
 		})
 		colu.init()
 	})
 
-	it('Should create and send financed send tx.', function (done) {
+	it('Should create and broadcast financed send tx.', function (done) {
 		this.timeout(30000)
 		settings.privateSeed = privateSeed
 		var colu = new Colu(settings)
 		colu.on('connect', function () {
-			var address = colu.hdwallet.getPublicKey(0).getAddress(colu.hdwallet.network).toString()
+			var address = fromAddress
 			var args = {
 		    from: address,
 		    fee: 1000,

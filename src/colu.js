@@ -59,6 +59,7 @@ Colu.prototype.financedIssue = function (args, callback) {
   var publicKey = privateKey.pub
   var last_txid
   var assetInfo
+  var receivingAddresses
   args.fee = args.fee || FEE
 
   async.waterfall([
@@ -84,6 +85,7 @@ Colu.prototype.financedIssue = function (args, callback) {
           }
         })
       }
+      receivingAddresses = args.transfer
       return self.coloredCoins.issue(args, cb)
     },
     function (l_assetInfo, cb) {
@@ -97,6 +99,7 @@ Colu.prototype.financedIssue = function (args, callback) {
       // console.log('transmited')
       body = JSON.parse(body)
       assetInfo.txid = body.txid2.txid
+      assetInfo.receivingAddresses = receivingAddresses
       cb(null, assetInfo)
     }
   ],
