@@ -43,6 +43,8 @@ describe('Test Colu SDK', function () {
 	      assetId = ans.assetId
 	      expect(ans.txid).to.be.a('string')
 	      expect(ans.txid).to.have.length.above(0)
+	      expect(ans.issueAddress).to.be.a('string')
+	      expect(ans.issueAddress).to.have.length.above(0)
 	      expect(ans.receivingAddresses).to.be.a('array')
 	      expect(ans.receivingAddresses).to.have.length.above(0)
 				fromAddress = ans.receivingAddresses[0].address

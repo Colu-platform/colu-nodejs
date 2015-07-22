@@ -9,7 +9,7 @@ var ColoredCoins = require('coloredcoinsd-wraper')
 var coluHost = 'https://engine.colu.co'
 var FEE = 1000
 
-Colu = function (settings) {
+var Colu = function (settings) {
   var self = this
 
   settings = settings || {}
@@ -78,12 +78,26 @@ Colu.prototype.financedIssue = function (args, callback) {
       args.financeOutput = body.vout
       args.issueAddress = publicKey.getAddress(self.hdwallet.network).toString()
 
+      var sendingAmount = parseInt(args.amount)
       if (args.transfer) {
         args.transfer.forEach(function (to) {
           if (!to.address) {
             to.address = publicKey.getAddress(self.hdwallet.network).toString()
           }
+          sendingAmount-= parseInt(to.amount)
         })
+        if (sendingAmount > 0) {
+          args.transfer.push({
+            address: publicKey.getAddress(self.hdwallet.network).toString(),
+            amount: sendingAmount
+          })
+        }
+      }
+      else {
+        args.transfer = [{
+          address: publicKey.getAddress(self.hdwallet.network).toString(),
+          amount: sendingAmount
+        }]
       }
       receivingAddresses = args.transfer
       return self.coloredCoins.issue(args, cb)
@@ -100,6 +114,7 @@ Colu.prototype.financedIssue = function (args, callback) {
       body = JSON.parse(body)
       assetInfo.txid = body.txid2.txid
       assetInfo.receivingAddresses = receivingAddresses
+      assetInfo.issueAddress = args.issueAddress
       cb(null, assetInfo)
     }
   ],
@@ -151,7 +166,5 @@ Colu.prototype.financedSend = function (args, callback) {
   ],
   callback)
 }
-
-
 
 module.exports = Colu
