@@ -60,7 +60,7 @@ Colu.prototype.financedIssue = function (args, callback) {
   var last_txid
   var assetInfo
   var receivingAddresses
-  args.fee = args.fee || FEE
+  args.fee = FEE
 
   async.waterfall([
     // Ask for finance.
