@@ -55,8 +55,8 @@ Colu.prototype.init = function () {
 Colu.prototype.financedIssue = function (args, callback) {
   var self = this
 
-  var privateKey = self.hdwallet.getPrivateKey(args.accountIndex)
-  var publicKey = privateKey.pub
+  var privateKey
+  var publicKey
   var last_txid
   var assetInfo
   var receivingAddresses
@@ -65,6 +65,17 @@ Colu.prototype.financedIssue = function (args, callback) {
   async.waterfall([
     // Ask for finance.
     function (cb) {
+      if (!args.issueAddress) {
+        cb(null, self.hdwallet.getPrivateKey(args.accountIndex))
+      }
+      else {
+        self.hdwallet.getAddressPrivateKey(address, cb)
+      }
+    },
+    function (priv, cb) {
+      privateKey = priv
+      publicKey = privateKey.pub
+      args.issueAddress = publicKey.getAddress(self.hdwallet.network).toString()
       askForFinance(publicKey.toHex(), 'Issue', args.fee + FEE, self.coluHost ,cb)
     },
     function (response, body, cb) {
@@ -76,26 +87,25 @@ Colu.prototype.financedIssue = function (args, callback) {
 
       args.financeOutputTxid = last_txid
       args.financeOutput = body.vout
-      args.issueAddress = publicKey.getAddress(self.hdwallet.network).toString()
 
       var sendingAmount = parseInt(args.amount)
       if (args.transfer) {
         args.transfer.forEach(function (to) {
           if (!to.address) {
-            to.address = publicKey.getAddress(self.hdwallet.network).toString()
+            to.address = args.issueAddress
           }
           sendingAmount-= parseInt(to.amount)
         })
         if (sendingAmount > 0) {
           args.transfer.push({
-            address: publicKey.getAddress(self.hdwallet.network).toString(),
+            address: args.issueAddress,
             amount: sendingAmount
           })
         }
       }
       else {
         args.transfer = [{
-          address: publicKey.getAddress(self.hdwallet.network).toString(),
+          address: args.issueAddress,
           amount: sendingAmount
         }]
       }
