@@ -2,13 +2,8 @@ var Colu = require(__dirname + '/../src/colu.js')
 var assert = require('assert')
 var expect = require('chai').expect
 
-var testnetApi = 'https://dev.api.coloredcoins.org'
-var coluHost = 'https://dev.engine.colu.co'
-
 describe('Test Colu SDK', function () {
 	var settings = {
-		coloredCoinsHost: testnetApi,
-		coluHost: coluHost,
 		network: 'testnet'
 	}
 

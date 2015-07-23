@@ -6,17 +6,24 @@ var request = require('request')
 var HDWallet = require('hdwallet')
 var ColoredCoins = require('coloredcoinsd-wraper')
 
-var coluHost = 'https://engine.colu.co'
+var mainnetColuHost = 'https://engine.colu.co'
+var testnetColuHost = 'https://testnet.engine.colu.co'
+
 var FEE = 1000
 
 var Colu = function (settings) {
   var self = this
 
   settings = settings || {}
-  self.coluHost = settings.coluHost || coluHost
+  if (settings.network == 'testnet') {
+    self.coluHost = settings.coluHost || testnetColuHost
+  }
+  else {
+    self.coluHost = settings.coluHost || mainnetColuHost
+  }
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
-
+  self.network = self.hdwallet.network
   self.hdwallet.on('connect', function () {
     self.emit('connect')
   })
@@ -24,15 +31,6 @@ var Colu = function (settings) {
   self.hdwallet.on('error', function (err) {
     self.emit('error', err)
   })
-}
-
-var signAndTransmit = function (txHex, privateKey ,last_txid, host, cb) {
-  var signedTxHex = ColoredCoins.signTx(txHex, privateKey)
-  var data_params = {
-    last_txid: last_txid,
-    tx_hex: signedTxHex
-  }
-  request.post(host + '/transmit_financed', {form: data_params }, cb)
 }
 
 var askForFinance = function (company_public_key, purpose ,amount, host, cb) {
@@ -50,6 +48,24 @@ Colu.prototype.init = function () {
   var self = this
 
   self.hdwallet.init()
+}
+
+Colu.prototype.signAndTransmit = function (txHex, last_txid, host, callback) {
+  var self = this
+
+  var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
+  async.map(addresses, function (address, cb) {
+    self.hdwallet.getAddressPrivateKey(address, cb)
+  },
+  function (err, privateKeys) {
+    if (err) return callback(err)
+    var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
+    var data_params = {
+      last_txid: last_txid,
+      tx_hex: signedTxHex
+    }
+    request.post(host + '/transmit_financed', {form: data_params }, callback)
+  })
 }
 
 Colu.prototype.financedIssue = function (args, callback) {
@@ -75,7 +91,7 @@ Colu.prototype.financedIssue = function (args, callback) {
     function (priv, cb) {
       privateKey = priv
       publicKey = privateKey.pub
-      args.issueAddress = publicKey.getAddress(self.hdwallet.network).toString()
+      args.issueAddress = publicKey.getAddress(self.network).toString()
       askForFinance(publicKey.toHex(), 'Issue', args.fee + FEE, self.coluHost ,cb)
     },
     function (response, body, cb) {
@@ -110,11 +126,13 @@ Colu.prototype.financedIssue = function (args, callback) {
         }]
       }
       receivingAddresses = args.transfer
+      args.flags = args.flags || {}
+      args.flags.injectPreviousOutput = true
       return self.coloredCoins.issue(args, cb)
     },
     function (l_assetInfo, cb) {
       assetInfo = l_assetInfo
-      signAndTransmit(assetInfo.txHex, privateKey ,last_txid, self.coluHost, cb)
+      self.signAndTransmit(assetInfo.txHex, last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -158,11 +176,13 @@ Colu.prototype.financedSend = function (args, callback) {
       last_txid = body.txid
       args.financeOutputTxid = last_txid
       args.financeOutput = body.vout
+      args.flags = args.flags || {}
+      args.flags.injectPreviousOutput = true
       return self.coloredCoins.sendasset(args, cb)
     },
     function (l_sendInfo, cb) {
       sendInfo = l_sendInfo
-      signAndTransmit(sendInfo.txHex, privateKey ,last_txid, self.coluHost, cb)
+      self.signAndTransmit(sendInfo.txHex, last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
