@@ -69,7 +69,7 @@ Colu.prototype.financedIssue = function (args, callback) {
         cb(null, self.hdwallet.getPrivateKey(args.accountIndex))
       }
       else {
-        self.hdwallet.getAddressPrivateKey(address, cb)
+        self.hdwallet.getAddressPrivateKey(args.issueAddress, cb)
       }
     },
     function (priv, cb) {
