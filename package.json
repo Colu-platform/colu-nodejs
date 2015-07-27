@@ -1,6 +1,6 @@
 {
   "name": "colu",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Colu SKD for engine and colored-coins api.",
   "main": "src/colu.js",
   "scripts": {
@@ -38,7 +38,7 @@
     "async": "^1.3.0",
     "chai": "^3.0.0",
     "coloredcoinsd-wraper": "0.1.6",
-    "hdwallet": "0.1.3",
+    "hdwallet": "0.1.4",
     "request": "^2.58.0"
   }
 }
