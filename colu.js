@@ -9,7 +9,7 @@ var CC = require('coloredcoinsd-wraper')
 var coluHost = 'https://engine.colu.co'
 var FEE = 1000
 
-Colu = function (args) {
+var Colu = function (args) {
   var self = this
 
   self.coluHost = args.coluHost || coluHost
@@ -26,7 +26,7 @@ Colu = function (args) {
   })
 }
 
-var signAndTransmit = function (txHex, privateKey ,last_txid, host, cb) {
+var signAndTransmit = function (txHex, privateKey, last_txid, host, cb) {
   var signedTxHex = CC.signTx(txHex, privateKey)
   var data_params = {
     last_txid: last_txid,
@@ -35,7 +35,7 @@ var signAndTransmit = function (txHex, privateKey ,last_txid, host, cb) {
   request.post(host + '/transmit_financed', {form: data_params }, cb)
 }
 
-var askForFinance = function (company_public_key, purpose ,amount, host, cb) {
+var askForFinance = function (company_public_key, purpose, amount, host, cb) {
   var data_params = {
     company_public_key: company_public_key,
     purpose: purpose,
@@ -46,13 +46,12 @@ var askForFinance = function (company_public_key, purpose ,amount, host, cb) {
 
 util.inherits(Colu, events.EventEmitter)
 
-Colu.prototype.init = function () {
+Colu.prototype.init = function (cb) {
   var self = this
-
-  self.hdwallet.init()
+  self.hdwallet.init(cb)
 }
 
-Colu.prototype.financedIssue = function (args, callback) {
+Colu.prototype.issueAsset = function (args, callback) {
   var self = this
 
   var privateKey = self.hdwallet.getPrivateKey(args.accountIndex)
@@ -64,7 +63,7 @@ Colu.prototype.financedIssue = function (args, callback) {
   async.waterfall([
     // Ask for finance.
     function (cb) {
-      askForFinance(publicKey.toHex(), 'Issue', args.fee + FEE, self.coluHost ,cb)
+      askForFinance(publicKey.toHex(), 'Issue', args.fee + FEE, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -84,11 +83,11 @@ Colu.prototype.financedIssue = function (args, callback) {
           }
         })
       }
-      return self.cc.issue(args, cb)
+      return self.cc.getIssueAssetTx(args, cb)
     },
     function (l_assetInfo, cb) {
       assetInfo = l_assetInfo
-      signAndTransmit(assetInfo.txHex, privateKey ,last_txid, self.coluHost, cb)
+      signAndTransmit(assetInfo.txHex, privateKey, last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -103,7 +102,7 @@ Colu.prototype.financedIssue = function (args, callback) {
   callback)
 }
 
-Colu.prototype.financedSend = function (args, callback) {
+Colu.prototype.sendAsset = function (args, callback) {
   var self = this
 
   var privateKey
@@ -120,7 +119,7 @@ Colu.prototype.financedSend = function (args, callback) {
     function (priv, cb) {
       privateKey = priv
       publicKey = privateKey.pub
-      askForFinance(publicKey.toHex(), 'Send', args.fee + FEE, self.coluHost ,cb)
+      askForFinance(publicKey.toHex(), 'Send', args.fee + FEE, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
@@ -130,11 +129,11 @@ Colu.prototype.financedSend = function (args, callback) {
       last_txid = body.txid
       args.financeOutputTxid = last_txid
       args.financeOutput = body.vout
-      return self.cc.sendasset(args, cb)
+      return self.cc.getSendAssetTx(args, cb)
     },
     function (l_sendInfo, cb) {
       sendInfo = l_sendInfo
-      signAndTransmit(sendInfo.txHex, privateKey ,last_txid, self.coluHost, cb)
+      signAndTransmit(sendInfo.txHex, privateKey, last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {

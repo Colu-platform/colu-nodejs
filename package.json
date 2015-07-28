@@ -1,8 +1,8 @@
 {
   "name": "colu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Colu SKD for engine and colored-coins api.",
-  "main": "src/colu.js",
+  "main": "colu.js",
   "scripts": {
     "test": "mocha",
     "coverage": "istanbul cover _mocha -- -R spec",
@@ -20,15 +20,15 @@
     "bitcoin"
   ],
   "contributors": [
-   {
+    {
      "name": "Eliran Zach",
      "email": "thehobbit85@gmail.com"
-   },
-   {
+    },
+    {
      "name": "bejavu",
      "email": "tal@colu.co"
-   }
- ],
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Colu-platform/colu-nodejs/issues"
@@ -37,8 +37,12 @@
   "dependencies": {
     "async": "^1.3.0",
     "chai": "^3.0.0",
-    "coloredcoinsd-wraper": "0.0.1",
-    "hdwallet": "0.0.2",
+    "coloredcoinsd-wraper": "^0.0.1",
+    "hdwallet": "^0.0.2",
     "request": "^2.58.0"
+  },
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "mocha": "^2.2.4"
   }
 }
