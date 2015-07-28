@@ -92,17 +92,6 @@ Colu.prototype.financedIssue = function (args, callback) {
       privateKey = priv
       publicKey = privateKey.pub
       args.issueAddress = publicKey.getAddress(self.network).toString()
-      askForFinance(publicKey.toHex(), 'Issue', args.fee + FEE, self.coluHost ,cb)
-    },
-    function (response, body, cb) {
-      if (response.statusCode !== 200) {
-        return cb(body)
-      }
-      body = JSON.parse(body)
-      last_txid = body.txid
-
-      args.financeOutputTxid = last_txid
-      args.financeOutput = body.vout
 
       var sendingAmount = parseInt(args.amount)
       if (args.transfer) {
@@ -125,6 +114,21 @@ Colu.prototype.financedIssue = function (args, callback) {
           amount: sendingAmount
         }]
       }
+
+      var financeAmount = args.fee + (FEE * args.transfer.length)
+
+      askForFinance(publicKey.toHex(), 'Issue', financeAmount, self.coluHost ,cb)
+    },
+    function (response, body, cb) {
+      if (response.statusCode !== 200) {
+        return cb(body)
+      }
+      body = JSON.parse(body)
+      last_txid = body.txid
+
+      args.financeOutputTxid = last_txid
+      args.financeOutput = body.vout
+
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
@@ -166,7 +170,15 @@ Colu.prototype.financedSend = function (args, callback) {
     function (priv, cb) {
       privateKey = priv
       publicKey = privateKey.pub
-      askForFinance(publicKey.toHex(), 'Send', args.fee + FEE, self.coluHost ,cb)
+
+      if (args.to) {
+        var financeAmount = args.fee + (FEE * args.to.length)
+      }
+      else {
+        var financeAmount = args.fee + FEE
+      }
+
+      askForFinance(publicKey.toHex(), 'Send', financeAmount, self.coluHost ,cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) {
