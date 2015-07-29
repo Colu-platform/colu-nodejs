@@ -32,7 +32,7 @@ var Colu = function (settings) {
   })
 }
 
-var askForFinance = function (company_public_key, purpose ,amount, host, cb) {
+var askForFinance = function (company_public_key, purpose, amount, host, cb) {
   var data_params = {
     company_public_key: company_public_key,
     purpose: purpose,
@@ -45,7 +45,10 @@ util.inherits(Colu, events.EventEmitter)
 
 Colu.prototype.init = function (cb) {
   var self = this
-  self.hdwallet.init(cb)
+  self.hdwallet.init(function (err, wallet) {
+    if (err) return cb(err)
+    cb(null, self)
+  })
 }
 
 Colu.prototype.signAndTransmit = function (txHex, last_txid, host, callback) {
