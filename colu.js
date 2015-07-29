@@ -46,8 +46,11 @@ util.inherits(Colu, events.EventEmitter)
 Colu.prototype.init = function (cb) {
   var self = this
   self.hdwallet.init(function (err, wallet) {
-    if (err) return cb(err)
-    cb(null, self)
+    if (err) {
+      if (cb) return cb(err)
+      throw err
+    }
+    if (cb) cb(null, self)
   })
 }
 
@@ -78,15 +81,14 @@ Colu.prototype.issueAsset = function (args, callback) {
   var assetInfo
   var receivingAddresses
   args.fee = FEE
+  args.transfer = args.transfer || []
+  var hdwallet = self.hdwallet
 
   async.waterfall([
     // Ask for finance.
     function (cb) {
-      if (!args.issueAddress) {
-        cb(null, self.hdwallet.getPrivateKey(args.accountIndex))
-      } else {
-        self.hdwallet.getAddressPrivateKey(args.issueAddress, cb)
-      }
+      if (!args.issueAddress) return cb(null, hdwallet.getPrivateKey(args.accountIndex))
+      hdwallet.getAddressPrivateKey(args.issueAddress, cb)
     },
     function (priv, cb) {
       privateKey = priv
@@ -94,34 +96,22 @@ Colu.prototype.issueAsset = function (args, callback) {
       args.issueAddress = publicKey.getAddress(self.network).toString()
 
       var sendingAmount = parseInt(args.amount, 10)
-      if (args.transfer) {
-        args.transfer.forEach(function (to) {
-          if (!to.address) {
-            to.address = args.issueAddress
-          }
-          sendingAmount -= parseInt(to.amount, 10)
-        })
-        if (sendingAmount > 0) {
-          args.transfer.push({
-            address: args.issueAddress,
-            amount: sendingAmount
-          })
-        }
-      } else {
-        args.transfer = [{
+      args.transfer.forEach(function (to) {
+        to.address = to.address || args.issueAddress
+        sendingAmount -= parseInt(to.amount, 10)
+      })
+      if (sendingAmount > 0) {
+        args.transfer.push({
           address: args.issueAddress,
           amount: sendingAmount
-        }]
+        })
       }
 
       var financeAmount = args.fee + (FEE * args.transfer.length)
-
       askForFinance(publicKey.toHex(), 'Issue', financeAmount, self.coluHost, cb)
     },
     function (response, body, cb) {
-      if (response.statusCode !== 200) {
-        return cb(body)
-      }
+      if (response.statusCode !== 200) return cb(body)
       body = JSON.parse(body)
       last_txid = body.txid
 
@@ -130,17 +120,14 @@ Colu.prototype.issueAsset = function (args, callback) {
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      return self.coloredCoins.getIssueAssetTx(args, cb)
+      self.coloredCoins.getIssueAssetTx(args, cb)
     },
     function (l_assetInfo, cb) {
       assetInfo = l_assetInfo
       self.signAndTransmit(assetInfo.txHex, last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
-      if (response.statusCode !== 200) {
-        return cb(body)
-      }
-      // console.log('transmited')
+      if (response.statusCode !== 200) return cb(body)
       body = JSON.parse(body)
       assetInfo.txid = body.txid2.txid
       assetInfo.receivingAddresses = receivingAddresses
@@ -169,18 +156,12 @@ Colu.prototype.sendAsset = function (args, callback) {
       privateKey = priv
       publicKey = privateKey.pub
       var financeAmount
-      if (args.to) {
-        financeAmount = args.fee + (FEE * args.to.length)
-      } else {
-        financeAmount = args.fee + FEE
-      }
-
+      var length = args.to && args.to.length || 1
+      financeAmount = args.fee + (FEE * length)
       askForFinance(publicKey.toHex(), 'Send', financeAmount, self.coluHost, cb)
     },
     function (response, body, cb) {
-      if (response.statusCode !== 200) {
-        return cb(body)
-      }
+      if (response.statusCode !== 200) return cb(body)
       body = JSON.parse(body)
       last_txid = body.txid
       args.financeOutputTxid = last_txid
@@ -194,9 +175,7 @@ Colu.prototype.sendAsset = function (args, callback) {
       self.signAndTransmit(sendInfo.txHex, last_txid, self.coluHost, cb)
     },
     function (response, body, cb) {
-      if (response.statusCode !== 200) {
-        return cb(body)
-      }
+      if (response.statusCode !== 200) return cb(body)
       // console.log('transmited')
       body = JSON.parse(body)
       sendInfo.txid = body.txid2.txid
