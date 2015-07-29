@@ -1,6 +1,6 @@
 {
   "name": "colu",
-  "version": "0.3.13",
+  "version": "0.4.0",
   "description": "Colu SKD for engine and colored-coins api.",
   "main": "colu.js",
   "scripts": {
