@@ -42,7 +42,9 @@ var askForFinance = function (apiKey, company_public_key, purpose, amount, host,
     purpose: purpose,
     amount: amount
   }
-  request.post(host + '/finance_tx?token=' + apiKey, {form: data_params}, cb)
+  var path = host + '/finance_tx'
+  if (apiKey) path += '?token=' + apiKey
+  request.post(path, {form: data_params}, cb)
 }
 
 util.inherits(Colu, events.EventEmitter)
