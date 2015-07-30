@@ -11,14 +11,15 @@ describe('Test Colu SDK', function () {
   var toAddress = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
   var assetId
   var fromAddress
+  var phoneNumber = '+1234567890'
 
   it('Should create and broadcast financed issue tx.', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     var colu = new Colu(settings)
     colu.on('connect', function () {
       privateSeed = colu.hdwallet.getPrivateSeed()
       var args = {
-        amount: 1,
+        amount: 2,
         divisibility: 0,
         fee: 1000,
         reissueable: false,
@@ -50,7 +51,7 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast financed send tx.', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     settings.privateSeed = privateSeed
     var colu = new Colu(settings)
     colu.on('connect', function () {
@@ -78,4 +79,35 @@ describe('Test Colu SDK', function () {
     })
     colu.init()
   })
+
+  it('Should create and broadcast financed send tx.', function (done) {
+    this.timeout(60000)
+    settings.privateSeed = privateSeed
+    var colu = new Colu(settings)
+    colu.on('connect', function () {
+      var address = fromAddress
+      var args = {
+        from: address,
+        fee: 1000,
+        to: [
+          {
+            phoneNumber: phoneNumber,
+            assetId: assetId,
+            amount: 1
+          }
+        ]
+      }
+      colu.sendAsset(args, function (err, ans) {
+        if (err) console.error(err)
+        assert(!err)
+        expect(ans.txHex).to.be.a('string')
+        expect(ans.txHex).to.have.length.above(0)
+        expect(ans.txid).to.be.a('string')
+        expect(ans.txid).to.have.length.above(0)
+        done()
+      })
+    })
+    colu.init()
+  })
+
 })

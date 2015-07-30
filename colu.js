@@ -159,6 +159,23 @@ Colu.prototype.sendAsset = function (args, callback) {
 
   async.waterfall([
     function (cb) {
+      if (!args.to) return cb()
+      async.each(args.to, function (to, cb) {
+        if (!to.phoneNumber) return cb()
+        var data_params = {
+          phone_number: to.phoneNumber
+        }
+        request.post(self.coluHost + '/get_next_address_by_phone_number', {form: data_params}, function (err, response, body) {
+          if (err) return cb(err)
+          if (response.statusCode !== 200) {
+            return cb(body)
+          }
+          to.address = body
+          cb()
+        })  
+      }, cb)
+    },
+    function (cb) {
       self.hdwallet.getAddressPrivateKey(args.from, cb)
     },
     // Ask for finance.
