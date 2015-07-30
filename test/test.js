@@ -13,7 +13,7 @@ describe('Test Colu SDK', function () {
   var fromAddress
   var phoneNumber = '+1234567890'
 
-  it('Should create and broadcast financed issue tx.', function (done) {
+  it('Should create and broadcast issue tx.', function (done) {
     this.timeout(60000)
     var colu = new Colu(settings)
     colu.on('connect', function () {
@@ -50,7 +50,7 @@ describe('Test Colu SDK', function () {
     colu.init()
   })
 
-  it('Should create and broadcast financed send tx.', function (done) {
+  it('Should create and broadcast send tx.', function (done) {
     this.timeout(60000)
     settings.privateSeed = privateSeed
     var colu = new Colu(settings)
@@ -80,7 +80,7 @@ describe('Test Colu SDK', function () {
     colu.init()
   })
 
-  it('Should create and broadcast financed send tx.', function (done) {
+  it('Should create and broadcast send tx to phone.', function (done) {
     this.timeout(60000)
     settings.privateSeed = privateSeed
     var colu = new Colu(settings)
