@@ -20,6 +20,10 @@ var Colu = function (settings) {
   } else {
     self.coluHost = settings.coluHost || mainnetColuHost
   }
+  if (self.coluHost === mainnetColuHost) {
+    if (!settings.apiKey) throw new Error('Must have apiKey')
+    self.apiKey = settings.apiKey
+  }
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
@@ -32,13 +36,13 @@ var Colu = function (settings) {
   })
 }
 
-var askForFinance = function (company_public_key, purpose, amount, host, cb) {
+var askForFinance = function (apiKey, company_public_key, purpose, amount, host, cb) {
   var data_params = {
     company_public_key: company_public_key,
     purpose: purpose,
     amount: amount
   }
-  request.post(host + '/ask_for_finance', {form: data_params}, cb)
+  request.post(host + '/finance_tx?token=' + apiKey, {form: data_params}, cb)
 }
 
 util.inherits(Colu, events.EventEmitter)
@@ -108,7 +112,7 @@ Colu.prototype.issueAsset = function (args, callback) {
       }
 
       var financeAmount = args.fee + (FEE * args.transfer.length)
-      askForFinance(publicKey.toHex(), 'Issue', financeAmount, self.coluHost, cb)
+      askForFinance(self.apiKey, publicKey.toHex(), 'Issue', financeAmount, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
@@ -158,7 +162,7 @@ Colu.prototype.sendAsset = function (args, callback) {
       var financeAmount
       var length = args.to && args.to.length || 1
       financeAmount = args.fee + (FEE * length)
-      askForFinance(publicKey.toHex(), 'Send', financeAmount, self.coluHost, cb)
+      askForFinance(self.apiKey, publicKey.toHex(), 'Send', financeAmount, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
