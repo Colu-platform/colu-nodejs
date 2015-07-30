@@ -13,7 +13,7 @@ $ npm i colu
 var Colu = require('colu')
 
 var colu = new Colu({
-    apiKey: 'mandatory',
+    apiKey: 'mandatory if in mainnet',
     coloredCoinsHost: 'optional',
     coluHost: 'optional',
     redisPort: 'optional',
