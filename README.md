@@ -36,3 +36,21 @@ Colu.prototype.sendAsset(args, callback)
 ```sh
 $ mocha
 ```
+
+### Running as a standalone server
+
+To run as a standalone server you need to install Node.Js and NPM.
+Then install the colu module globaly like this:
+
+```sh
+$ npm i -g colu
+```
+
+Then just run it from the terminal like this:
+
+```sh
+$ colu
+```
+
+And now you can use REST request to use the Colu SDK.
+By default it will be hosted at : 127.0.0.1:8081 and will be locked to local host only.
