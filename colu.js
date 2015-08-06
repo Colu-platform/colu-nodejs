@@ -166,7 +166,7 @@ Colu.prototype.sendAsset = function (args, callback) {
           }
           to.address = body
           cb()
-        })  
+        })
       }, cb)
     },
     function (cb) {
