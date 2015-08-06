@@ -44,7 +44,7 @@ var askForFinance = function (apiKey, company_public_key, purpose, amount, host,
   }
   var path = host + '/finance_tx'
   if (apiKey) path += '?token=' + apiKey
-  request.post(path, {form: data_params}, cb)
+  request.post(path, {json: data_params}, cb)
 }
 
 util.inherits(Colu, events.EventEmitter)
@@ -74,7 +74,7 @@ Colu.prototype.signAndTransmit = function (txHex, last_txid, host, callback) {
       last_txid: last_txid,
       tx_hex: signedTxHex
     }
-    request.post(host + '/transmit_financed', {form: data_params }, callback)
+    request.post(host + '/transmit_financed', {json: data_params }, callback)
   })
 }
 
@@ -118,7 +118,6 @@ Colu.prototype.issueAsset = function (args, callback) {
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
-      body = JSON.parse(body)
       last_txid = body.txid
 
       args.financeOutputTxid = last_txid
@@ -134,7 +133,6 @@ Colu.prototype.issueAsset = function (args, callback) {
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
-      body = JSON.parse(body)
       assetInfo.txid = body.txid2.txid
       assetInfo.receivingAddresses = receivingAddresses
       assetInfo.issueAddress = args.issueAddress
@@ -161,7 +159,7 @@ Colu.prototype.sendAsset = function (args, callback) {
         var data_params = {
           phone_number: to.phoneNumber
         }
-        request.post(self.coluHost + '/get_next_address_by_phone_number', {form: data_params}, function (err, response, body) {
+        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: data_params}, function (err, response, body) {
           if (err) return cb(err)
           if (response.statusCode !== 200) {
             return cb(body)
@@ -185,7 +183,6 @@ Colu.prototype.sendAsset = function (args, callback) {
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
-      body = JSON.parse(body)
       last_txid = body.txid
       args.financeOutputTxid = last_txid
       args.financeOutput = body.vout
@@ -199,8 +196,6 @@ Colu.prototype.sendAsset = function (args, callback) {
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
-      // console.log('transmited')
-      body = JSON.parse(body)
       sendInfo.txid = body.txid2.txid
       cb(null, sendInfo)
     }
