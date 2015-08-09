@@ -24,12 +24,12 @@
   ],
   "contributors": [
     {
-      "name": "Eliran Zach",
-      "email": "thehobbit85@gmail.com"
+      "name": "Tal Beja",
+      "email": "tal@colu.co"
     },
     {
-      "name": "bejavu",
-      "email": "tal@colu.co"
+      "name": "Eliran Zach",
+      "email": "thehobbit85@gmail.com"
     }
   ],
   "license": "MIT",
@@ -41,9 +41,9 @@
     "async": "^1.3.0",
     "body-parser": "^1.13.3",
     "chai": "^3.0.0",
-    "coloredcoinsd-wraper": "^0.2.1",
+    "coloredcoinsd-wraper": "^0.2.2",
+    "hdwallet": "^0.1.8",
     "express": "^4.13.3",
-    "hdwallet": "^0.1.7",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "path-extra": "^1.0.3",
