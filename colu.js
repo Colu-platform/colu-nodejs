@@ -20,9 +20,9 @@ var Colu = function (settings) {
   } else {
     self.coluHost = settings.coluHost || mainnetColuHost
   }
+  self.apiKey = settings.apiKey
   if (self.coluHost === mainnetColuHost) {
     if (!settings.apiKey) throw new Error('Must have apiKey')
-    self.apiKey = settings.apiKey
   }
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
