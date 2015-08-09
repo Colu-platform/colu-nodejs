@@ -1,6 +1,6 @@
 {
   "name": "colu",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Colu SDK for engine and colored-coins api.",
   "main": "colu.js",
   "scripts": {
@@ -42,8 +42,9 @@
     "body-parser": "^1.13.3",
     "chai": "^3.0.0",
     "coloredcoinsd-wraper": "^0.2.2",
-    "hdwallet": "^0.1.8",
+    "crypto-hashing": "^0.3.1",
     "express": "^4.13.3",
+    "hdwallet": "^0.1.8",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "path-extra": "^1.0.3",
