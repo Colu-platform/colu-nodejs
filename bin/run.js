@@ -44,42 +44,31 @@ app.use(function (req, res, next) {
   if (hash.sha256(req.headers['x-access-token']) !== settings.selfApiKey) return res.send(401)
 })
 
-app.post('/signandtransmit', function (req, res, next) {
-  var txHex = req.body.txHex
-  var last_txid = req.body.last_txid
-  var host = req.body.host
-  colu.signAndTransmit(txHex, last_txid, host, function (err, result) {
-    if (err) return next(err)
-    res.send(result)
-  })
-})
-
+// ////////// Colu Wrappers ////////////
 app.post('/sendasset', function (req, res, next) {
-  var settings = req.body.settings
-  colu.sendAsset(settings, function (err, result) {
+  colu.sendAsset(req.body, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
 
 app.post('/issueasset', function (req, res, next) {
-  var settings = req.body.settings
-  colu.issueAsset(settings, function (err, result) {
+  colu.issueAsset(req.body, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
+// /////////////////////////////////////////////////
 
 // Colored Coins End Points ///////
-app.post('/coloredcoins/getissueassettx', function (req, res, next) {
-  var settings = req.body.settings
-  colu.coloredCoins.getSendAssetTx(settings, function (err, result) {
+app.post('/coloredcoins/issue', function (req, res, next) {
+  colu.coloredCoins.getSendAssetTx(req.body, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
 
-app.post('/coloredcoins/getsendassettx', function (req, res, next) {
+app.post('/coloredcoins/sendasset', function (req, res, next) {
   var settings = req.body.settings
   colu.issueAsset(settings, function (err, result) {
     if (err) return next(err)
@@ -87,64 +76,67 @@ app.post('/coloredcoins/getsendassettx', function (req, res, next) {
   })
 })
 
-app.post('/coloredcoins/broadcasttx', function (req, res, next) {
-  var settings = req.body.settings
-  colu.coloredCoins.broadcastTx(settings, function (err, result) {
+app.get('/coloredcoins/addressinfo/:address', function (req, res, next) {
+  colu.coloredCoins.getAddressInfo(req.params.address, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
 
-app.get('/coloredcoins/getaddressinfo', function (req, res, next) {
-  var address = req.query.address
-  colu.coloredCoins.getAddressInfo(address, function (err, result) {
+app.get('/coloredcoins/stakeholders/:assetId/:numConfirmations', function (req, res, next) {
+  colu.coloredCoins.getStakeHolders(req.params.assetId, req.params.numConfirmations || 0, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
 
-app.get('/coloredcoins/getstakeholders', function (req, res, next) {
-  var assetId = req.query.assetId
-  var numConfirmations = req.query.settings || 0
-  colu.coloredCoins.getStakeHolders(assetId, numConfirmations, function (err, result) {
+app.get('/coloredcoins/assetmetadata/:assetId/:utxo', function (req, res, next) {
+  colu.coloredCoins.getAssetMetadata(req.params.assetId, req.params.utxo, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
 
-app.get('/coloredcoins/getassetmetadata', function (req, res, next) {
-  var assetId = req.query.assetId
-  var utxo = req.query.utxo
-  colu.coloredCoins.getAssetMetadata(assetId, utxo, function (err, result) {
-    if (err) return next(err)
-    res.send(result)
-  })
-})
-
-app.post('/coloredcoins/getassetdata', function (req, res, next) {
-  var settings = req.body.settings
+app.post('/coloredcoins/assetdata/:assetid/:numconfirmations', function (req, res, next) {
+  var settings = {
+    assetId: req.params.assetid,
+    numConfirmations: req.params.numconfirmations,
+    addresses: req.body.addresses
+  }
   colu.coloredCoins.getAssetData(settings, function (err, result) {
     if (err) return next(err)
     res.send(result)
   })
 })
 
-app.get('/coloredcoins/signtx', function (req, res, next) {
-  var unsignedTx = req.query.unsignedTx
-  var privateKey = req.query.privateKey
-  return res.send(colu.coloredCoins.signTx(unsignedTx, privateKey))
+app.post('/coloredcoins/signtx/:unsignedtx/:privatekey', function (req, res, next) {
+  return res.send(colu.coloredCoins.signTx(req.params.unsignedtx, req.params.privatekey))
 })
 
-app.get('/coloredcoins/getinputaddresses', function (req, res, next) {
-  var txHex = req.query.txHex
-  var network = req.query.network
-  return res.send(colu.coloredCoins.getInputAddresses(txHex, network))
+app.get('/coloredcoins/inputaddresses/:txhex/:network', function (req, res, next) {
+  return res.send(colu.coloredCoins.getInputAddresses(req.params.txhex, req.params.network))
 })
 
-app.get('/hdwallet/getaddress', function (req, res, next) {
-  var account = req.query.account
-  var addressIndex = req.query.addressIndex
-  return res.send(colu.hdwallet.getAddress(account, addressIndex))
+// /////////////////////////////////////////////////
+
+// ////////// Utility Functions wrapper ////////////
+app.post('/broadcast', function (req, res, next) {
+  colu.coloredCoins.broadcastTx(req.body, function (err, result) {
+    if (err) return next(err)
+    res.send(result)
+  })
+})
+
+app.post('/signandbroadcast/:txHex/:last_txid/:host', function (req, res, next) {
+  colu.signAndTransmit(req.params.txHex, req.params.last_txid, req.params.host, function (err, result) {
+    if (err) return next(err)
+    res.send(result)
+  })
+})
+// /////////////////////////////////////////////////
+
+app.get('/hdwallet/address/:account/:addressindex', function (req, res, next) {
+  return res.send(colu.hdwallet.getAddress(req.params.account, req.params.addressindex))
 })
 
 // //////////
