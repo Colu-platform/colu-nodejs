@@ -6,12 +6,13 @@ var Colu = require(__dirname + '/../colu.js')
 var bodyParser = require('body-parser')
 var jf = require('jsonfile')
 var hash = require('crypto-hashing')
+var morgan = require('morgan')('dev')
 
 var serverSettings = path.join(path.datadir('colu'), 'settings.json')
 var settings
 
 try {
-  settings = jf.readFileSync(__dirname + '/' + serverSettings)
+  settings = jf.readFileSync(serverSettings)
 } catch (e) {
   settings = {
     colu: {
@@ -30,6 +31,7 @@ try {
 var colu = new Colu(settings.colu)
 var app = express()
 
+app.use(morgan)
 app.use(function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*')
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
@@ -154,7 +156,7 @@ app.use(function (req, res, next) {
 
 colu.on('connect', function () {
   app.listen(settings.server.port, settings.server.host, function () {
-    console.log('server started')
+    console.log('server started on port', settings.server.port)
   })
 })
 
