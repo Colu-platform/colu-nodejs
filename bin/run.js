@@ -135,6 +135,10 @@ app.post('/signandbroadcast/:txHex/:last_txid/:host', function (req, res, next) 
 })
 // /////////////////////////////////////////////////
 
+app.get('/hdwallet/address', function (req, res, next) {
+  return res.send(colu.hdwallet.getAddress())
+})
+
 app.get('/hdwallet/address/:account/:addressindex', function (req, res, next) {
   return res.send(colu.hdwallet.getAddress(req.params.account, req.params.addressindex))
 })
