@@ -4,7 +4,8 @@ var expect = require('chai').expect
 
 describe('Test Colu SDK', function () {
   var settings = {
-    network: 'testnet'
+    network: 'testnet',
+    coluHost: 'https://dev.engine.colu.co'
   }
 
   var privateSeed
@@ -14,7 +15,7 @@ describe('Test Colu SDK', function () {
   var phoneNumber = '+1234567890'
 
   it('Should create and broadcast issue tx.', function (done) {
-    this.timeout(60000)
+    this.timeout(120000)
     var colu = new Colu(settings)
     colu.on('connect', function () {
       privateSeed = colu.hdwallet.getPrivateSeed()
@@ -51,13 +52,13 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast send tx.', function (done) {
-    this.timeout(60000)
+    this.timeout(120000)
     settings.privateSeed = privateSeed
     var colu = new Colu(settings)
     colu.on('connect', function () {
       var address = fromAddress
       var args = {
-        from: address,
+        from: [address],
         fee: 1000,
         to: [
           {
@@ -81,13 +82,13 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast send tx to phone.', function (done) {
-    this.timeout(60000)
+    this.timeout(120000)
     settings.privateSeed = privateSeed
     var colu = new Colu(settings)
     colu.on('connect', function () {
       var address = fromAddress
       var args = {
-        from: address,
+        from: [address],
         fee: 1000,
         to: [
           {

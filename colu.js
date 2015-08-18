@@ -47,6 +47,17 @@ var askForFinance = function (apiKey, company_public_key, purpose, amount, host,
   request.post(path, {json: data_params}, cb)
 }
 
+var buildTransaction = function (apiKey, financeAddress, type, args, host, cb) {
+  var data_params = {
+    financed_address: financeAddress,
+    type: type,
+    cc_args: args
+  }
+  var path = host + '/build_finance'
+  if (apiKey) path += '?token=' + apiKey
+  request.post(path, {json: data_params}, cb) 
+}
+
 util.inherits(Colu, events.EventEmitter)
 
 Colu.prototype.init = function (cb) {
@@ -60,7 +71,7 @@ Colu.prototype.init = function (cb) {
   })
 }
 
-Colu.prototype.signAndTransmit = function (txHex, last_txid, host, callback) {
+Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
   var self = this
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
@@ -71,7 +82,7 @@ Colu.prototype.signAndTransmit = function (txHex, last_txid, host, callback) {
     if (err) return callback(err)
     var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
     var data_params = {
-      last_txid: last_txid,
+      last_txid: lastTxid,
       tx_hex: signedTxHex
     }
     request.post(host + '/transmit_financed', {json: data_params }, callback)
@@ -83,7 +94,7 @@ Colu.prototype.issueAsset = function (args, callback) {
 
   var privateKey
   var publicKey
-  var last_txid
+  var lastTxid
   var assetInfo
   var receivingAddresses
   args.fee = FEE
@@ -113,23 +124,17 @@ Colu.prototype.issueAsset = function (args, callback) {
         })
       }
 
-      var financeAmount = args.fee + (FEE * args.transfer.length)
-      askForFinance(self.apiKey, publicKey.toHex(), 'Issue', financeAmount, self.coluHost, cb)
-    },
-    function (response, body, cb) {
-      if (response.statusCode !== 200) return cb(body)
-      last_txid = body.txid
-
-      args.financeOutputTxid = last_txid
-      args.financeOutput = body.vout
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      self.coloredCoins.getIssueAssetTx(args, cb)
+      buildTransaction(self.apiKey, args.issueAddress, 'issue', args, self.coluHost, cb)
     },
-    function (l_assetInfo, cb) {
-      assetInfo = l_assetInfo
-      self.signAndTransmit(assetInfo.txHex, last_txid, self.coluHost, cb)
+    function (response, body, cb) {
+      if (response.statusCode !== 200) return cb(body)
+      assetInfo = body
+      lastTxid = assetInfo.financeTxid
+
+      self.signAndTransmit(assetInfo.txHex, lastTxid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
@@ -147,7 +152,7 @@ Colu.prototype.sendAsset = function (args, callback) {
 
   var privateKey
   var publicKey
-  var last_txid
+  var lastTxid
   var sendInfo
   args.fee = args.fee || FEE
 
@@ -170,29 +175,26 @@ Colu.prototype.sendAsset = function (args, callback) {
       }, cb)
     },
     function (cb) {
-      self.hdwallet.getAddressPrivateKey(args.from, cb)
+      if (!args.from || !args.from.length) {
+        return cb('No from address.')
+      }
+      self.hdwallet.getAddressPrivateKey(args.from[0], cb)
     },
     // Ask for finance.
     function (priv, cb) {
       privateKey = priv
       publicKey = privateKey.pub
       var financeAmount
-      var length = args.to && args.to.length || 1
-      financeAmount = args.fee + (FEE * length)
-      askForFinance(self.apiKey, publicKey.toHex(), 'Send', financeAmount, self.coluHost, cb)
+      args.flags = args.flags || {}
+      args.flags.injectPreviousOutput = true
+      buildTransaction(self.apiKey, args.from[0], 'send', args, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
-      last_txid = body.txid
-      args.financeOutputTxid = last_txid
-      args.financeOutput = body.vout
-      args.flags = args.flags || {}
-      args.flags.injectPreviousOutput = true
-      return self.coloredCoins.getSendAssetTx(args, cb)
-    },
-    function (l_sendInfo, cb) {
-      sendInfo = l_sendInfo
-      self.signAndTransmit(sendInfo.txHex, last_txid, self.coluHost, cb)
+      sendInfo = body
+      lastTxid = sendInfo.financeTxid
+
+      self.signAndTransmit(sendInfo.txHex, lastTxid, self.coluHost, cb)
     },
     function (response, body, cb) {
       if (response.statusCode !== 200) return cb(body)
