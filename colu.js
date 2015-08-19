@@ -47,17 +47,6 @@ var askForFinance = function (apiKey, company_public_key, purpose, amount, host,
   request.post(path, {json: data_params}, cb)
 }
 
-var buildTransaction = function (apiKey, financeAddress, type, args, host, cb) {
-  var data_params = {
-    financed_address: financeAddress,
-    type: type,
-    cc_args: args
-  }
-  var path = host + '/build_finance'
-  if (apiKey) path += '?token=' + apiKey
-  request.post(path, {json: data_params}, cb) 
-}
-
 util.inherits(Colu, events.EventEmitter)
 
 Colu.prototype.init = function (cb) {
@@ -71,7 +60,21 @@ Colu.prototype.init = function (cb) {
   })
 }
 
-Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
+Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
+  var data_params = {
+    financed_address: financeAddress,
+    type: type,
+    cc_args: args
+  }
+  var path = this.coluHost + '/build_finance'
+  if (this.apiKey) path += '?token=' + this.apiKey
+  request.post(path, {json: data_params}, function (err, response, body) {
+    if (response.statusCode !== 200) return cb(body)
+    cb(null, body) 
+  })
+}
+
+Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) { 
   var self = this
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
@@ -127,11 +130,10 @@ Colu.prototype.issueAsset = function (args, callback) {
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      buildTransaction(self.apiKey, args.issueAddress, 'issue', args, self.coluHost, cb)
+      self.buildTransaction(args.issueAddress, 'issue', args, cb)
     },
-    function (response, body, cb) {
-      if (response.statusCode !== 200) return cb(body)
-      assetInfo = body
+    function (info, cb) {
+      assetInfo = info
       lastTxid = assetInfo.financeTxid
 
       self.signAndTransmit(assetInfo.txHex, lastTxid, self.coluHost, cb)
@@ -187,11 +189,10 @@ Colu.prototype.sendAsset = function (args, callback) {
       var financeAmount
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      buildTransaction(self.apiKey, args.from[0], 'send', args, self.coluHost, cb)
+      self.buildTransaction(args.from[0], 'send', args, cb)
     },
-    function (response, body, cb) {
-      if (response.statusCode !== 200) return cb(body)
-      sendInfo = body
+    function (info, cb) {
+      sendInfo = info
       lastTxid = sendInfo.financeTxid
 
       self.signAndTransmit(sendInfo.txHex, lastTxid, self.coluHost, cb)
