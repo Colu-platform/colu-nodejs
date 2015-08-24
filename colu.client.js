@@ -23,7 +23,7 @@ var Colu = function (settings) {
   }
   self.apiKey = settings.apiKey
   if (self.coluHost === mainnetColuHost) {
-    if (!settings.apiKey) throw new Error('Must have apiKey')
+    if (!settings.apiKey) throw new Error('Must have apiKey and/or set network to testnet')
   }
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
@@ -35,17 +35,6 @@ var Colu = function (settings) {
   self.hdwallet.on('error', function (err) {
     self.emit('error', err)
   })
-}
-
-var askForFinance = function (apiKey, company_public_key, purpose, amount, host, cb) {
-  var data_params = {
-    company_public_key: company_public_key,
-    purpose: purpose,
-    amount: amount
-  }
-  var path = host + '/finance_tx'
-  if (apiKey) path += '?token=' + apiKey
-  request.post(path, {json: data_params}, cb)
 }
 
 util.inherits(Colu, events.EventEmitter)
@@ -70,12 +59,13 @@ Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
   var path = this.coluHost + '/build_finance'
   if (this.apiKey) path += '?token=' + this.apiKey
   request.post(path, {json: data_params}, function (err, response, body) {
+    if (err) return cb(err)
     if (response.statusCode !== 200) return cb(body)
-    cb(null, body) 
+    cb(null, body)
   })
 }
 
-Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) { 
+Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
   var self = this
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
@@ -153,8 +143,8 @@ Colu.prototype.issueAsset = function (args, callback) {
 Colu.prototype.sendAsset = function (args, callback) {
   var self = this
 
-  var privateKey
-  var publicKey
+  // var privateKey
+  // var publicKey
   var lastTxid
   var sendInfo
   args.fee = args.fee || FEE
@@ -185,9 +175,9 @@ Colu.prototype.sendAsset = function (args, callback) {
     },
     // Ask for finance.
     function (priv, cb) {
-      privateKey = priv
-      publicKey = privateKey.pub
-      var financeAmount
+      // privateKey = priv
+      // publicKey = privateKey.pub
+      // var financeAmount
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
       self.buildTransaction(args.from[0], 'send', args, cb)
