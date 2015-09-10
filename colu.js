@@ -69,7 +69,8 @@ Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
   var path = this.coluHost + '/build_finance'
   if (this.apiKey) path += '?token=' + this.apiKey
   request.post(path, {json: data_params}, function (err, response, body) {
-    if (response.statusCode !== 200) return cb(body)
+    if (err) return cb(err)
+    if (!response || response.statusCode !== 200) return cb(body)
     cb(null, body) 
   })
 }
@@ -177,8 +178,8 @@ Colu.prototype.sendAsset = function (args, callback) {
       }, cb)
     },
     function (cb) {
-      if (!args.from || !args.from.length) {
-        return cb('No from address.')
+      if (!args.from || !Array.isArray(args.from) || !args.from.length) {
+        return cb('Should have from as array of addresses.')
       }
       self.hdwallet.getAddressPrivateKey(args.from[0], cb)
     },
