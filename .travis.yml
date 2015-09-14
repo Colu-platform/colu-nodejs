@@ -1,12 +1,12 @@
 language: node_js
 node_js:
-  - "stable"
-  - "iojs
-  - "0.10"
-  - "0.12"
+  - stable
+  - iojs
+  - '0.10'
+  - '0.12'
 os:
-  - "linux"
-  - "windows"
+  - linux
+  - windows
 before_script:
   - npm install -g istanbul
   - npm install -g mocha
