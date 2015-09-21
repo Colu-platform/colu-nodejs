@@ -3,41 +3,17 @@
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
+## Using
+
 ### Installation
 
 ```sh
 $ npm i colu
 ```
 
-### Constructor
+### Documentation 
 
-```js
-var Colu = require('colu')
-
-var colu = new Colu({
-    apiKey: 'mandatory if in mainnet',
-    coloredCoinsHost: 'optional',
-    coluHost: 'optional',
-    redisPort: 'optional',
-    redisHost: 'optional',
-    network:: 'optional',
-    privateSeed: 'optional'
-})
-```
-
-### API's
-
-```js
-Colu.prototype.init(cb)
-Colu.prototype.issueAsset(args, callback)
-Colu.prototype.sendAsset(args, callback)
-```
-
-### Testing
-
-```sh
-$ mocha
-```
+Full documentation for this Module can be found here: [http://documentation.colu.co/](http://documentation.colu.co/#1.SDK)
 
 ### Running as a standalone server
 
@@ -56,3 +32,11 @@ $ colu
 
 And now you can use REST request to use the Colu SDK.
 By default it will be hosted at : 127.0.0.1:8081 and will be locked to local host only.
+
+## Developing
+
+### Testing
+
+```sh
+$ mocha
+```
