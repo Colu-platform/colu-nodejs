@@ -14,7 +14,7 @@ var FEE = 1000
 
 var Colu = function (settings) {
   var self = this
-
+  self.initiated = false
   settings = settings || {}
   if (settings.network === 'testnet') {
     self.coluHost = settings.coluHost || testnetColuHost
@@ -29,7 +29,10 @@ var Colu = function (settings) {
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
   self.hdwallet.on('connect', function () {
-    self.emit('connect')
+    if (!self.initiated) {
+      self.initiated = true
+      self.emit('connect')
+    }
   })
 
   self.hdwallet.on('error', function (err) {
@@ -51,17 +54,17 @@ Colu.prototype.init = function (cb) {
 }
 
 Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
-  var data_params = {
+  var dataParams = {
     financed_address: financeAddress,
     type: type,
     cc_args: args
   }
   var path = this.coluHost + '/build_finance'
   if (this.apiKey) path += '?token=' + this.apiKey
-  request.post(path, {json: data_params}, function (err, response, body) {
+  request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
-    if (response.statusCode !== 200) return cb(body)
-    cb(null, body)
+    if (!response || response.statusCode !== 200) return cb(body)
+    cb(null, body) 
   })
 }
 
@@ -75,11 +78,11 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
   function (err, privateKeys) {
     if (err) return callback(err)
     var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-    var data_params = {
+    var dataParams = {
       last_txid: lastTxid,
       tx_hex: signedTxHex
     }
-    request.post(host + '/transmit_financed', {json: data_params }, callback)
+    request.post(host + '/transmit_financed', {json: dataParams }, callback)
   })
 }
 
@@ -154,10 +157,10 @@ Colu.prototype.sendAsset = function (args, callback) {
       if (!args.to) return cb()
       async.each(args.to, function (to, cb) {
         if (!to.phoneNumber) return cb()
-        var data_params = {
+        var dataParams = {
           phone_number: to.phoneNumber
         }
-        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: data_params}, function (err, response, body) {
+        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
           if (err) return cb(err)
           if (response.statusCode !== 200) {
             return cb(body)
@@ -168,8 +171,8 @@ Colu.prototype.sendAsset = function (args, callback) {
       }, cb)
     },
     function (cb) {
-      if (!args.from || !args.from.length) {
-        return cb('No from address.')
+      if (!args.from || !Array.isArray(args.from) || !args.from.length) {
+        return cb('Should have from as array of addresses.')
       }
       self.hdwallet.getAddressPrivateKey(args.from[0], cb)
     },
@@ -195,6 +198,73 @@ Colu.prototype.sendAsset = function (args, callback) {
     }
   ],
   callback)
+}
+
+Colu.prototype.getAssets = function (callback) {
+  var self = this
+  self.hdwallet.getAddresses(function (err, addresses) {
+    if (err) return callback(err)
+    var dataParams = {
+      addresses: addresses
+    }
+    request.post(self.coluHost + '/get_addresses_utxos', {json: dataParams }, function (err, response, body) {
+      if (err) return callback(err)
+      if (!response || response.statusCode !== 200) return callback(body)
+      var utxos = body
+      var assets = []
+      utxos.forEach(function (addressUtxo) {
+        if (addressUtxo.utxos) {
+          addressUtxo.utxos.forEach(function (utxo) {
+            if (utxo.assets) {
+              utxo.assets.forEach(function (asset) {
+                assets.push({
+                  address: addressUtxo.address,
+                  txid: utxo.txid,
+                  index: utxo.index,
+                  assetId: asset.assetId,
+                  amount: asset.amount,
+                  issueTxid: asset.issueTxid,
+                  divisibility: asset.divisibility,
+                  lockStatus: asset.lockStatus
+                })
+              })
+            }
+          })
+        }
+      })
+      callback(null, assets)
+    })
+  })
+}
+
+Colu.prototype.getTransactions = function (callback) {
+  var self = this
+  self.hdwallet.getAddresses(function (err, addresses) {
+    if (err) return callback(err)
+    var dataParams = {
+      addresses: addresses,
+      with_transactions: true
+    }
+    request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
+      if (err) return callback(err)
+      if (!response || response.statusCode !== 200) return callback(body)
+      var addressesInfo = body
+      var transactions = []
+      var txids = []
+      
+      addressesInfo.forEach(function (addressInfo) {
+        if (addressInfo.transactions) {
+          addressInfo.transactions.forEach(function (transaction) {
+            if (txids.indexOf(transaction.txis) == -1) {
+              transactions.push(transaction)
+            }
+          })
+        }
+      })
+
+      callback(null, transactions)
+    })
+  })
 }
 
 module.exports = Colu
@@ -1504,8 +1574,8 @@ var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
 var async = require('async')
 
-var mainnetColoredCoinsHost = 'http://api.coloredcoins.org/v2'
-var testnetCloredCoinsHost = 'http://testnet.api.coloredcoins.org/v2'
+var mainnetColoredCoinsHost = 'http://api.coloredcoins.org/v3'
+var testnetCloredCoinsHost = 'http://testnet.api.coloredcoins.org/v3'
 
 var Coloredcoinsd = function (settings) {
   settings = settings || {}
@@ -1522,26 +1592,29 @@ var Coloredcoinsd = function (settings) {
 var handleResponse = function (cb) {
   return function (err, response, body) {
     if (err) return cb(err)
+    if (body && typeof body === 'string') {
+      body = JSON.parse(body)
+    } else {
+      body = body || {}
+    }
     if (response.statusCode !== 200) {
-      if (body) body = JSON.parse(body)
-      else body = {}
       body.statusCode = response.statusCode
       return cb(body)
     }
-    cb(null, JSON.parse(body))
+    cb(null, body)
   }
 }
 
 Coloredcoinsd.prototype.getIssueAssetTx = function (args, cb) {
-  request.post(this.coloredCoinsHost + '/issue', {form: args}, handleResponse(cb))
+  request.post(this.coloredCoinsHost + '/issue', {json: args}, handleResponse(cb))
 }
 
 Coloredcoinsd.prototype.getSendAssetTx = function (args, cb) {
-  request.post(this.coloredCoinsHost + '/sendasset', {form: args}, handleResponse(cb))
+  request.post(this.coloredCoinsHost + '/sendasset', {json: args}, handleResponse(cb))
 }
 
 Coloredcoinsd.prototype.broadcastTx = function (args, cb) {
-  request.post(this.coloredCoinsHost + '/broadcast', {form: args}, handleResponse(cb))
+  request.post(this.coloredCoinsHost + '/broadcast', {json: args}, handleResponse(cb))
 }
 
 Coloredcoinsd.prototype.getAddressInfo = function (address, cb) {
@@ -41378,19 +41451,45 @@ function FileSystem (callback) {
 }
 
 FileSystem.prototype.get = function (key) {
-  if (this.conf && key && key in this.conf) {
+  if (this.conf && key && this.conf[key]) {
     return this.conf[key]
   }
   return null
 }
 
+FileSystem.prototype.hget = function (key, hash) {
+  if (this.conf && key && hash && this.conf[key] && typeof this.conf[key] === 'object') {
+    return this.conf[key][hash]
+  }
+  return null
+}
+
 FileSystem.prototype.set = function (key, value, callback) {
-  if (!callback) callback = function (a) { return a }
+  if (!callback) callback = function () { }
   if (!this.conf) return callback('No conf file loaded.')
   if (!key) return callback('No key.')
   value = value || null
   this.conf[key] = value
   return safePathWrite(this.configFile, this.conf, callback)
+}
+
+FileSystem.prototype.hset = function (key, hash, value, callback) {
+  if (!callback) callback = function () { }
+  if (!this.conf) return callback('No conf file loaded.')
+  if (!key) return callback('No key.')
+  if (!hash) return callback('No hash.')
+  value = value || null
+  this.conf[key] = this.conf[key] || {}
+  if (typeof this.conf[key] !== 'object') return callback('Key ' + key + ' is set but not an object.')
+  this.conf[key][hash] = value
+  return safePathWrite(this.configFile, this.conf, callback)
+}
+
+FileSystem.prototype.hkeys = function (key) {
+  if (this.conf && key && this.conf[key] && typeof this.conf[key] === 'object') {
+    return Object.keys(this.conf[key])
+  }
+  return []
 }
 
 var safePathWrite = function (file, content, callback) {
@@ -41504,68 +41603,87 @@ HDWallet.prototype.getKeyPrefix = function () {
   return doubleSha256(self.getPrivateSeed()) + '/' + network
 }
 
-HDWallet.prototype.getSavedKey = function (key, callback) {
+HDWallet.prototype.setDB = function (key, value) {
   var self = this
 
-  var savedKey = self.getKeyPrefix() + '/' + key
+  var seedKey = self.getKeyPrefix()
   if (self.hasRedis) {
-    return self.redisClient.get(savedKey, function (err, value) {
-      if (err) return callback(err)
-      return callback(null, value)
-    })
+    self.redisClient.hset(seedKey, key, value)
+  } else {
+    if (self.fs) {
+      self.fs.hset(seedKey, key, value)
+    }
+  }
+}
+
+HDWallet.prototype.getDB = function (key, callback) {
+  var self = this
+
+  var seedKey = self.getKeyPrefix()
+  if (self.hasRedis) {
+    return self.redisClient.hget(seedKey, key, callback)
   } else if (self.fs) {
-    return callback(null, self.fs.get(savedKey))
+    return callback(null, self.fs.hget(seedKey, key))
   } else {
     return callback('Key ' + key + ' not found.')
   }
 }
 
+HDWallet.prototype.getKeys = function (callback) {
+  var self = this
+
+  var seedKey = self.getKeyPrefix()
+  if (self.hasRedis) {
+    return self.redisClient.hkeys(seedKey, callback)
+  } else if (self.fs) {
+    return callback(null, self.fs.hkeys(seedKey))
+  } else {
+    return callback('Keys not found.')
+  }
+}
+
+HDWallet.prototype.getAddresses = function (callback) {
+  var self = this
+
+  self.getKeys(function (err, keys) {
+    if (err) return callback(err)
+    var addresses = []
+    keys.forEach(function (key) {
+      if (key.indexOf('address/') === 0) {
+        var address = key.split('/')[1]
+        addresses.push(address)
+      }
+    })
+    return callback(null, addresses)
+  })
+}
+
 HDWallet.prototype.getNextAccount = function (callback) {
   var self = this
 
-  var coluSdkNextAccount = self.getKeyPrefix() + '/coluSdkNextAccount'
-  if (self.hasRedis) {
-    return self.redisClient.get(coluSdkNextAccount, function (err, nextAccount) {
-      if (err) return callback(err)
-      if (nextAccount)
-        nextAccount = parseInt(nextAccount)
-      return callback(null, nextAccount)
-    })
-  } else if (self.fs) {
-    var nextAccount = self.fs.get(coluSdkNextAccount) || 0
-    if (nextAccount)
-      nextAccount = parseInt(nextAccount)
-    return callback(null, nextAccount)
-  } else {
-    return callback(null, self.nextAccount)
-  }
+  var coluSdkNextAccount = 'coluSdkNextAccount'
+  self.getDB(coluSdkNextAccount, function (err, nextAccount) {
+    if (err) return callback(err)
+    nextAccount = nextAccount || 0
+    return callback(null, parseInt(nextAccount, 10))
+  })
 }
 
 HDWallet.prototype.getNextAccountAddress = function (accountIndex, callback) {
   var self = this
 
-  var coluSdkNextAccountAddress = self.getKeyPrefix() + '/coluSdknextAccountAddress/'+accountIndex
-  if (self.hasRedis) {
-    return self.redisClient.get(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
-      if (err) return callback(err)
-      if (nextAccountAddress)
-        nextAccountAddress = parseInt(nextAccountAddress)
-      return callback(null, nextAccountAddress)
-    })
-  } else if (self.fs) {
-    var nextAccountAddress = self.fs.get(coluSdkNextAccountAddress) || 0
-    if (nextAccountAddress)
-      nextAccountAddress = parseInt(nextAccountAddress)
-    return callback(null, nextAccountAddress)
-  } else {
-    return callback(null, 0)
-  }
+  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/' + accountIndex
+  self.getDB(coluSdkNextAccountAddress, function (err, nextAccountAddress) {
+    if (err) return callback(err)
+    nextAccountAddress = nextAccountAddress || 0
+    return callback(null, parseInt(nextAccountAddress, 10))
+  })
 }
 
 HDWallet.prototype.setNextAccount = function (nextAccount) {
   var self = this
 
-  var coluSdkNextAccount = self.getKeyPrefix() + '/coluSdkNextAccount'
+  var coluSdkNextAccount = 'coluSdkNextAccount'
   self.nextAccount = nextAccount
   self.setDB(coluSdkNextAccount, self.nextAccount)
 }
@@ -41573,7 +41691,7 @@ HDWallet.prototype.setNextAccount = function (nextAccount) {
 HDWallet.prototype.setNextAccountAddress = function (accountIndex, nextAccountAddress) {
   var self = this
 
-  var coluSdkNextAccountAddress = self.getKeyPrefix() + '/coluSdknextAccountAddress/'+accountIndex
+  var coluSdkNextAccountAddress = 'coluSdknextAccountAddress/' + accountIndex
   self.setDB(coluSdkNextAccountAddress, nextAccountAddress)
 }
 
@@ -41581,28 +41699,18 @@ HDWallet.prototype.registerAddress = function (address, accountIndex, addressInd
   var self = this
 
   // console.log('registering '+address)
+
+  var addressKey = 'address/' + address
   change = (change) ? 1 : 0
-  var addressKey = self.getKeyPrefix() + '/' + address
   var addressValue = 'm/44\'/0\'/' + accountIndex + '\'/' + change + '/' + addressIndex
   self.setDB(addressKey, addressValue)
-}
-
-HDWallet.prototype.setDB = function (key, value) {
-  var self = this
-
-  if (self.hasRedis) {
-    self.redisClient.set(key, value)
-  } else {
-    if (self.fs) {
-      self.fs.set(key, value)
-    }
-  }
 }
 
 HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
   var self = this
 
-  self.getAddressPath(address, function (err, addressPath) {
+  var addressKey = 'address/' + address
+  self.getAddressPath(addressKey, function (err, addressPath) {
     if (err) return callback(err)
     if (!addressPath) return callback('Addresss ' + address + ' privateKey not found.')
     var path = addressPath.split('/')
@@ -41642,7 +41750,7 @@ HDWallet.prototype.getAddressPrivateKey = function (address, callback) {
 }
 
 HDWallet.prototype.getAddressPath = function (address, callback) {
-  this.getSavedKey(address, callback)
+  this.getDB(address, callback)
 }
 
 HDWallet.prototype.discover = function (callback) {
@@ -41668,13 +41776,12 @@ HDWallet.prototype.discover = function (callback) {
             if (isActive) {
               self.setNextAccount(currentAccount + 1)
               emptyAccounts = 0
-            }
-            else {
+            } else {
               emptyAccounts++
             }
             currentAccount++
           })
-        cb()
+          cb()
         })
       },
       function (err) {
@@ -41709,13 +41816,12 @@ HDWallet.prototype.discoverAccount = function (accountIndex, callback) {
               self.setNextAccountAddress(accountIndex, currentAddress + 1)
               emptyAddresses = 0
               active = true
-            }
-            else {
+            } else {
               emptyAddresses++
             }
             currentAddress++
           })
-        cb()
+          cb()
         })
       },
       function (err) {
@@ -41838,11 +41944,58 @@ module.exports = LocalStorage
 function LocalStorage () {}
 
 LocalStorage.prototype.get = function (key) {
-  return localStorage.getItem(key)
+  var value = localStorage.getItem(key)
+  try {
+    value = JSON.parse(value)
+  } catch (e) {
+    // not an object...
+  }
+  return value
 }
 
 LocalStorage.prototype.set = function (key, value) {
+  if (typeof value === 'object') {
+    value = JSON.stringify(value)
+  }
   return localStorage.setItem(key, value)
+}
+
+LocalStorage.prototype.hget = function (key, hash) {
+  if (key && hash) {
+    var hvalue = this.get(key)
+    if (typeof hvalue === 'object') {
+      return hvalue[hash]
+    }
+  }
+  return null
+}
+
+LocalStorage.prototype.hset = function (key, hash, value, callback) {
+  if (!callback) callback = function () { }
+  if (!key) return callback('No key.')
+  if (!hash) return callback('No hash.')
+  value = value || null
+  var hvalue = this.get(key)
+  if (!hvalue) {
+    // this.set(key, {})
+    hvalue = {}
+  }
+  if (typeof hvalue !== 'object') return callback('Key ' + key + ' is set but not an object.')
+  hvalue[hash] = value
+  this.set(key, hvalue)
+  callback()
+}
+
+LocalStorage.prototype.hkeys = function (key) {
+  if (key) {
+    var hvalue = this.get(key)
+    if (typeof hvalue === 'object') {
+      return Object.keys(hvalue)
+    } else {
+      return null
+    }
+  }
+  return []
 }
 
 },{}],302:[function(require,module,exports){
