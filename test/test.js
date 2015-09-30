@@ -51,6 +51,22 @@ describe('Test Colu SDK', function () {
     colu.init()
   })
 
+  it('Should return assets list for this wallet.', function (done) {
+    this.timeout(120000)
+    settings.privateSeed = privateSeed
+    var colu = new Colu(settings)
+    colu.on('connect', function () {
+      colu.getAssets(function (err, assets) {
+        if (err) console.error(err)
+        assert(!err)
+        expect(assets).to.be.a('array')
+        expect(assets).to.have.length.above(0)
+        done()
+      })
+    })
+    colu.init()
+  })
+
   it('Should create and broadcast send tx.', function (done) {
     this.timeout(120000)
     settings.privateSeed = privateSeed
@@ -105,6 +121,22 @@ describe('Test Colu SDK', function () {
         expect(ans.txHex).to.have.length.above(0)
         expect(ans.txid).to.be.a('string')
         expect(ans.txid).to.have.length.above(0)
+        done()
+      })
+    })
+    colu.init()
+  })
+
+  it('Should return transactions list for this wallet.', function (done) {
+    this.timeout(120000)
+    settings.privateSeed = privateSeed
+    var colu = new Colu(settings)
+    colu.on('connect', function () {
+      colu.getTransactions(function (err, transactions) {
+        if (err) console.error(err)
+        assert(!err)
+        expect(transactions).to.be.a('array')
+        expect(transactions).to.have.length.above(0)
         done()
       })
     })

@@ -13,7 +13,7 @@ var FEE = 1000
 
 var Colu = function (settings) {
   var self = this
-
+  self.initiated = false
   settings = settings || {}
   if (settings.network === 'testnet') {
     self.coluHost = settings.coluHost || testnetColuHost
@@ -28,7 +28,10 @@ var Colu = function (settings) {
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
   self.hdwallet.on('connect', function () {
-    self.emit('connect')
+    if (!self.initiated) {
+      self.initiated = true
+      self.emit('connect')
+    }
   })
 
   self.hdwallet.on('error', function (err) {
@@ -50,14 +53,14 @@ Colu.prototype.init = function (cb) {
 }
 
 Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
-  var data_params = {
+  var dataParams = {
     financed_address: financeAddress,
     type: type,
     cc_args: args
   }
   var path = this.coluHost + '/build_finance'
   if (this.apiKey) path += '?token=' + this.apiKey
-  request.post(path, {json: data_params}, function (err, response, body) {
+  request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
     if (!response || response.statusCode !== 200) return cb(body)
     cb(null, body) 
@@ -74,11 +77,11 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
   function (err, privateKeys) {
     if (err) return callback(err)
     var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-    var data_params = {
+    var dataParams = {
       last_txid: lastTxid,
       tx_hex: signedTxHex
     }
-    request.post(host + '/transmit_financed', {json: data_params }, callback)
+    request.post(host + '/transmit_financed', {json: dataParams }, callback)
   })
 }
 
@@ -153,10 +156,10 @@ Colu.prototype.sendAsset = function (args, callback) {
       if (!args.to) return cb()
       async.each(args.to, function (to, cb) {
         if (!to.phoneNumber) return cb()
-        var data_params = {
+        var dataParams = {
           phone_number: to.phoneNumber
         }
-        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: data_params}, function (err, response, body) {
+        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
           if (err) return cb(err)
           if (response.statusCode !== 200) {
             return cb(body)
@@ -194,6 +197,73 @@ Colu.prototype.sendAsset = function (args, callback) {
     }
   ],
   callback)
+}
+
+Colu.prototype.getAssets = function (callback) {
+  var self = this
+  self.hdwallet.getAddresses(function (err, addresses) {
+    if (err) return callback(err)
+    var dataParams = {
+      addresses: addresses
+    }
+    request.post(self.coluHost + '/get_addresses_utxos', {json: dataParams }, function (err, response, body) {
+      if (err) return callback(err)
+      if (!response || response.statusCode !== 200) return callback(body)
+      var utxos = body
+      var assets = []
+      utxos.forEach(function (addressUtxo) {
+        if (addressUtxo.utxos) {
+          addressUtxo.utxos.forEach(function (utxo) {
+            if (utxo.assets) {
+              utxo.assets.forEach(function (asset) {
+                assets.push({
+                  address: addressUtxo.address,
+                  txid: utxo.txid,
+                  index: utxo.index,
+                  assetId: asset.assetId,
+                  amount: asset.amount,
+                  issueTxid: asset.issueTxid,
+                  divisibility: asset.divisibility,
+                  lockStatus: asset.lockStatus
+                })
+              })
+            }
+          })
+        }
+      })
+      callback(null, assets)
+    })
+  })
+}
+
+Colu.prototype.getTransactions = function (callback) {
+  var self = this
+  self.hdwallet.getAddresses(function (err, addresses) {
+    if (err) return callback(err)
+    var dataParams = {
+      addresses: addresses,
+      with_transactions: true
+    }
+    request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
+      if (err) return callback(err)
+      if (!response || response.statusCode !== 200) return callback(body)
+      var addressesInfo = body
+      var transactions = []
+      var txids = []
+      
+      addressesInfo.forEach(function (addressInfo) {
+        if (addressInfo.transactions) {
+          addressInfo.transactions.forEach(function (transaction) {
+            if (txids.indexOf(transaction.txis) == -1) {
+              transactions.push(transaction)
+            }
+          })
+        }
+      })
+
+      callback(null, transactions)
+    })
+  })
 }
 
 module.exports = Colu
