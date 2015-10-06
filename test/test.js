@@ -1,4 +1,4 @@
-var Colu = require(__dirname + '/../colu.js')
+var Colu = require(__dirname + '/../src/colu.js')
 var assert = require('assert')
 var expect = require('chai').expect
 
