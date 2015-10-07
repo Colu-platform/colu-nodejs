@@ -63,7 +63,7 @@ Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
     if (!response || response.statusCode !== 200) return cb(body)
-    cb(null, body) 
+    cb(null, body)
   })
 }
 
@@ -250,11 +250,11 @@ Colu.prototype.getTransactions = function (callback) {
       var addressesInfo = body
       var transactions = []
       var txids = []
-      
+
       addressesInfo.forEach(function (addressInfo) {
         if (addressInfo.transactions) {
           addressInfo.transactions.forEach(function (transaction) {
-            if (txids.indexOf(transaction.txis) == -1) {
+            if (txids.indexOf(transaction.txis) === -1) {
               transactions.push(transaction)
             }
           })
