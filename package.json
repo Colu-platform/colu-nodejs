@@ -4,8 +4,7 @@
   "description": "Colu SDK for engine and colored-coins api.",
   "main": "colu.js",
   "scripts": {
-    "test": "mocha",
-    "coverage": "istanbul cover _mocha -- -R spec",
+    "test": "istanbul cover _mocha -- -R spec",
     "coveralls": "cat ./coverage/lcov.info | coveralls"
   },
   "bin": {
