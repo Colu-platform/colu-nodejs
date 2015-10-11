@@ -12,7 +12,6 @@ before_script:
   - npm install -g mocha
   - npm install -g coveralls
 after_script:
-  - npm run coverage
   - npm run coveralls
 services:
   - redis-server

@@ -1,11 +1,10 @@
 {
   "name": "colu",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "description": "Colu SDK for engine and colored-coins api.",
-  "main": "colu.js",
+  "main": "src/colu.js",
   "scripts": {
-    "test": "mocha",
-    "coverage": "istanbul cover _mocha -- -R spec",
+    "test": "istanbul cover _mocha -- -R spec",
     "coveralls": "cat ./coverage/lcov.info | coveralls"
   },
   "bin": {
@@ -52,6 +51,7 @@
   },
   "devDependencies": {
     "chai": "^3.0.0",
+    "istanbul": "^0.3.22",
     "mocha": "^2.2.4"
   }
 }
