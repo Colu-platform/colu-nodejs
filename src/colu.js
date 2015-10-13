@@ -71,7 +71,7 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
   var self = this
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
-  if (!addresses) return callback(new Error('can\'t find addresses to fund'))
+  if (!addresses) return callback('can\'t find addresses to fund')
   async.map(addresses, function (address, cb) {
     self.hdwallet.getAddressPrivateKey(address, cb)
   },
