@@ -127,7 +127,7 @@ Colu.prototype.issueAsset = function (args, callback) {
       self.buildTransaction(args.issueAddress, 'issue', args, cb)
     },
     function (info, cb) {
-      if (!info && !info.txHex) return cb(new Error('wrong server response'))
+      if (!info || !info.txHex) return cb('wrong server response')
       assetInfo = info
       lastTxid = assetInfo.financeTxid
       self.signAndTransmit(assetInfo.txHex, lastTxid, self.coluHost, cb)
