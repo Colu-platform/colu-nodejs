@@ -15,7 +15,6 @@ describe('Test Colu SDK', function () {
   var utxo
 
   var settings = {
-    apiKey: apiKey,
     network: 'testnet',
     coluHost: 'https://dev.engine.colu.co'
   }
