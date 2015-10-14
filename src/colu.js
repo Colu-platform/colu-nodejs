@@ -3,6 +3,7 @@ var events = require('events')
 var async = require('async')
 var request = require('request')
 
+var DataStorage = require('data-storage')
 var HDWallet = require('hdwallet')
 var ColoredCoins = require('coloredcoinsd-wraper')
 
@@ -24,9 +25,34 @@ var Colu = function (settings) {
   if (self.coluHost === mainnetColuHost) {
     if (!settings.apiKey) throw new Error('Must have apiKey and/or set network to testnet')
   }
+  self.redisPort = settings.redisPort || 6379
+  self.redisHost = settings.redisHost || '127.0.0.1'
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
+}
+
+util.inherits(Colu, events.EventEmitter)
+
+Colu.prototype.init = function (cb) {
+  var self = this
+
+  var settings = {
+    redisPort: self.redisPort,
+    redisHost: self.redisHost
+  }
+  self.ds = new DataStorage(settings)
+  self.ds.once('connect', function () {
+    self.afterDSInit(cb)
+  })
+
+  self.ds.init()
+}
+
+Colu.prototype.afterDSInit = function (cb) {
+  var self = this
+  
+  self.hdwallet.ds = self.ds
   self.hdwallet.on('connect', function () {
     if (!self.initiated) {
       self.initiated = true
@@ -37,12 +63,7 @@ var Colu = function (settings) {
   self.hdwallet.on('error', function (err) {
     self.emit('error', err)
   })
-}
 
-util.inherits(Colu, events.EventEmitter)
-
-Colu.prototype.init = function (cb) {
-  var self = this
   self.hdwallet.init(function (err, wallet) {
     if (err) {
       if (cb) return cb(err)
@@ -264,6 +285,74 @@ Colu.prototype.getTransactions = function (callback) {
       callback(null, transactions)
     })
   })
+}
+
+Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
+  var self = this
+  
+  var metadata
+  async.waterfall([
+    function (cb) {
+      // get the metadata from cache
+      getCachedAssetMetadata(self.ds, assetId, utxo, cb)
+    },
+    function (md, cb) {
+      metadata = md
+      // if no metadata or full
+      if (!metadata || full) {
+        // get metadata from cc
+        self.coloredCoins.getAssetMetadata(assetId, utxo, function (err, md) {
+          if (err) return cb(err)
+          metadata = md
+          // cache data
+          cacheAssetMetadata(self.ds, assetId, utxo, getPartialMetadata(metadata))
+          cb()
+        })
+      }
+      else {
+        cb()
+      } 
+    }
+  ],
+  function (err) {
+    if (err) return callback(err)
+    // return the metadata (if !full, just the partial)
+    if (!full) {
+      metadata = getPartialMetadata(metadata)
+    }
+    return callback(null, metadata)
+  })
+}
+
+var getCachedAssetMetadata = function (ds, assetId, utxo, callback) {
+  utxo = utxo || 0
+  ds.hget(assetId, utxo, function (err, metadataStr) {
+    if (err) return callback(err)
+    return callback(null, JSON.parse(metadataStr))
+  })
+}
+
+var cacheAssetMetadata = function (ds, assetId, utxo, metadata) {
+  utxo = utxo || 0
+  ds.hset(assetId, utxo, JSON.stringify(metadata))
+}
+
+var getPartialMetadata = function (metadata) {
+  var ans = {
+    assetId: metadata.assetId
+  }
+  var utxoMetadata = metadata.metadataOfUtxo || metadata.metadataOfIssuence
+  if (utxoMetadata && utxoMetadata.data) {
+    ans.assetName = utxoMetadata.data.assetName
+    ans.description = utxoMetadata.data.description
+    ans.issuer = utxoMetadata.data.issuer
+  }
+  else {
+    ans.assetName = metadata.assetName
+    ans.description = metadata.description
+    ans.issuer = metadata.issuer
+  }
+  return ans
 }
 
 module.exports = Colu
