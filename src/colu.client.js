@@ -28719,14 +28719,13 @@ var handleResponse = function (cb) {
     if (err) return cb(err)
     if (body && typeof body === 'string') {
       body = JSON.parse(body)
-    }
-    else {
+    } else {
       body = body || {}
     }
     if (response.statusCode !== 200) {
-      body.statusCode = response.statusCode 
+      body.statusCode = response.statusCode
       return cb(body)
-    } 
+    }
     cb(null, body)
   }
 }
@@ -28762,6 +28761,7 @@ Coloredcoinsd.prototype.getAssetMetadata = function (assetId, utxo, cb) {
   }
   request.get(this.coloredCoinsHost + '/assetmetadata/' + assetId + '/' + utxo, handleResponse(cb))
 }
+
 Coloredcoinsd.prototype.getAssetData = function (args, cb) {
   var self = this
 
@@ -28845,7 +28845,14 @@ Coloredcoinsd.signTx = function (unsignedTx, privateKey) {
 Coloredcoinsd.getInputAddresses = function (txHex, network) {
   network = network || bitcoin.networks.bitcoin
   var addresses = []
-  var tx = bitcoin.Transaction.fromHex(txHex)
+  var tx
+  try {
+    tx = bitcoin.Transaction.fromHex(txHex)
+  } catch (err) {
+    console.error('Coloredcoinsd.getInputAddresses: ', txHex)
+    console.error(err)
+    return null
+  }
   tx.ins.forEach(function (input) {
     if (!input.script) return addresses.push(null)
     if (bitcoin.scripts.isPubKeyHashOutput(input.script)) return addresses.push(new bitcoin.Address(input.script.chunks[2], network.pubKeyHash).toString())
@@ -66360,6 +66367,7 @@ var events = require('events')
 var async = require('async')
 var request = require('request')
 
+var DataStorage = require('data-storage')
 var HDWallet = require('hdwallet')
 var ColoredCoins = require('coloredcoinsd-wraper')
 
@@ -66381,9 +66389,34 @@ var Colu = function (settings) {
   if (self.coluHost === mainnetColuHost) {
     if (!settings.apiKey) throw new Error('Must have apiKey and/or set network to testnet')
   }
+  self.redisPort = settings.redisPort || 6379
+  self.redisHost = settings.redisHost || '127.0.0.1'
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
+}
+
+util.inherits(Colu, events.EventEmitter)
+
+Colu.prototype.init = function (cb) {
+  var self = this
+
+  var settings = {
+    redisPort: self.redisPort,
+    redisHost: self.redisHost
+  }
+  self.ds = new DataStorage(settings)
+  self.ds.once('connect', function () {
+    self.afterDSInit(cb)
+  })
+
+  self.ds.init()
+}
+
+Colu.prototype.afterDSInit = function (cb) {
+  var self = this
+  
+  self.hdwallet.ds = self.ds
   self.hdwallet.on('connect', function () {
     if (!self.initiated) {
       self.initiated = true
@@ -66394,12 +66427,7 @@ var Colu = function (settings) {
   self.hdwallet.on('error', function (err) {
     self.emit('error', err)
   })
-}
 
-util.inherits(Colu, events.EventEmitter)
-
-Colu.prototype.init = function (cb) {
-  var self = this
   self.hdwallet.init(function (err, wallet) {
     if (err) {
       if (cb) return cb(err)
@@ -66420,7 +66448,7 @@ Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
     if (!response || response.statusCode !== 200) return cb(body)
-    cb(null, body) 
+    cb(null, body)
   })
 }
 
@@ -66428,6 +66456,7 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
   var self = this
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
+  if (!addresses) return callback('can\'t find addresses to fund')
   async.map(addresses, function (address, cb) {
     self.hdwallet.getAddressPrivateKey(address, cb)
   },
@@ -66483,9 +66512,10 @@ Colu.prototype.issueAsset = function (args, callback) {
       self.buildTransaction(args.issueAddress, 'issue', args, cb)
     },
     function (info, cb) {
+      if (typeof info === 'function') return info('wrong server response')
+      if (!info || !info.txHex) return cb('wrong server response')
       assetInfo = info
       lastTxid = assetInfo.financeTxid
-
       self.signAndTransmit(assetInfo.txHex, lastTxid, self.coluHost, cb)
     },
     function (response, body, cb) {
@@ -66607,11 +66637,11 @@ Colu.prototype.getTransactions = function (callback) {
       var addressesInfo = body
       var transactions = []
       var txids = []
-      
+
       addressesInfo.forEach(function (addressInfo) {
         if (addressInfo.transactions) {
           addressInfo.transactions.forEach(function (transaction) {
-            if (txids.indexOf(transaction.txis) == -1) {
+            if (txids.indexOf(transaction.txis) === -1) {
               transactions.push(transaction)
             }
           })
@@ -66623,105 +66653,77 @@ Colu.prototype.getTransactions = function (callback) {
   })
 }
 
+Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
+  var self = this
+  
+  var metadata
+  async.waterfall([
+    function (cb) {
+      // get the metadata from cache
+      getCachedAssetMetadata(self.ds, assetId, utxo, cb)
+    },
+    function (md, cb) {
+      metadata = md
+      // if no metadata or full
+      if (!metadata || full) {
+        // get metadata from cc
+        self.coloredCoins.getAssetMetadata(assetId, utxo, function (err, md) {
+          if (err) return cb(err)
+          metadata = md
+          // cache data
+          cacheAssetMetadata(self.ds, assetId, utxo, getPartialMetadata(metadata))
+          cb()
+        })
+      }
+      else {
+        cb()
+      } 
+    }
+  ],
+  function (err) {
+    if (err) return callback(err)
+    // return the metadata (if !full, just the partial)
+    if (!full) {
+      metadata = getPartialMetadata(metadata)
+    }
+    return callback(null, metadata)
+  })
+}
+
+var getCachedAssetMetadata = function (ds, assetId, utxo, callback) {
+  utxo = utxo || 0
+  ds.hget(assetId, utxo, function (err, metadataStr) {
+    if (err) return callback(err)
+    return callback(null, JSON.parse(metadataStr))
+  })
+}
+
+var cacheAssetMetadata = function (ds, assetId, utxo, metadata) {
+  utxo = utxo || 0
+  ds.hset(assetId, utxo, JSON.stringify(metadata))
+}
+
+var getPartialMetadata = function (metadata) {
+  var ans = {
+    assetId: metadata.assetId
+  }
+  var utxoMetadata = metadata.metadataOfUtxo || metadata.metadataOfIssuence
+  if (utxoMetadata && utxoMetadata.data) {
+    ans.assetName = utxoMetadata.data.assetName
+    ans.description = utxoMetadata.data.description
+    ans.issuer = utxoMetadata.data.issuer
+  }
+  else {
+    ans.assetName = metadata.assetName
+    ans.description = metadata.description
+    ans.issuer = metadata.issuer
+  }
+  return ans
+}
+
 module.exports = Colu
 
-},{"async":394,"coloredcoinsd-wraper":251,"events":209,"hdwallet":641,"request":395,"util":247}],489:[function(require,module,exports){
-arguments[4][327][0].apply(exports,arguments)
-},{"_process":216,"dup":327}],490:[function(require,module,exports){
-arguments[4][253][0].apply(exports,arguments)
-},{"../package.json":493,"dup":253}],491:[function(require,module,exports){
-arguments[4][254][0].apply(exports,arguments)
-},{"./bigi":490,"assert":2,"buffer":17,"dup":254}],492:[function(require,module,exports){
-arguments[4][255][0].apply(exports,arguments)
-},{"./bigi":490,"./convert":491,"dup":255}],493:[function(require,module,exports){
-arguments[4][256][0].apply(exports,arguments)
-},{"dup":256}],494:[function(require,module,exports){
-arguments[4][257][0].apply(exports,arguments)
-},{"bs58":495,"buffer":17,"create-hash":496,"dup":257}],495:[function(require,module,exports){
-arguments[4][258][0].apply(exports,arguments)
-},{"dup":258}],496:[function(require,module,exports){
-arguments[4][259][0].apply(exports,arguments)
-},{"./md5":498,"buffer":17,"dup":259,"inherits":499,"ripemd160":500,"sha.js":502,"stream":234}],497:[function(require,module,exports){
-arguments[4][142][0].apply(exports,arguments)
-},{"buffer":17,"dup":142}],498:[function(require,module,exports){
-arguments[4][143][0].apply(exports,arguments)
-},{"./helpers":497,"dup":143}],499:[function(require,module,exports){
-arguments[4][211][0].apply(exports,arguments)
-},{"dup":211}],500:[function(require,module,exports){
-arguments[4][145][0].apply(exports,arguments)
-},{"buffer":17,"dup":145}],501:[function(require,module,exports){
-arguments[4][146][0].apply(exports,arguments)
-},{"buffer":17,"dup":146}],502:[function(require,module,exports){
-arguments[4][147][0].apply(exports,arguments)
-},{"./sha":503,"./sha1":504,"./sha224":505,"./sha256":506,"./sha384":507,"./sha512":508,"dup":147}],503:[function(require,module,exports){
-arguments[4][266][0].apply(exports,arguments)
-},{"./hash":501,"buffer":17,"dup":266,"inherits":499}],504:[function(require,module,exports){
-arguments[4][267][0].apply(exports,arguments)
-},{"./hash":501,"buffer":17,"dup":267,"inherits":499}],505:[function(require,module,exports){
-arguments[4][150][0].apply(exports,arguments)
-},{"./hash":501,"./sha256":506,"buffer":17,"dup":150,"inherits":499}],506:[function(require,module,exports){
-arguments[4][269][0].apply(exports,arguments)
-},{"./hash":501,"buffer":17,"dup":269,"inherits":499}],507:[function(require,module,exports){
-arguments[4][152][0].apply(exports,arguments)
-},{"./hash":501,"./sha512":508,"buffer":17,"dup":152,"inherits":499}],508:[function(require,module,exports){
-arguments[4][271][0].apply(exports,arguments)
-},{"./hash":501,"buffer":17,"dup":271,"inherits":499}],509:[function(require,module,exports){
-arguments[4][272][0].apply(exports,arguments)
-},{"buffer":17,"create-hash/browser":496,"dup":272,"inherits":510,"stream":234}],510:[function(require,module,exports){
-arguments[4][211][0].apply(exports,arguments)
-},{"dup":211}],511:[function(require,module,exports){
-arguments[4][274][0].apply(exports,arguments)
-},{"./point":515,"assert":2,"bigi":492,"dup":274}],512:[function(require,module,exports){
-arguments[4][275][0].apply(exports,arguments)
-},{"dup":275}],513:[function(require,module,exports){
-arguments[4][276][0].apply(exports,arguments)
-},{"./curve":511,"./names":514,"./point":515,"dup":276}],514:[function(require,module,exports){
-arguments[4][277][0].apply(exports,arguments)
-},{"./curve":511,"./curves":512,"bigi":492,"dup":277}],515:[function(require,module,exports){
-arguments[4][278][0].apply(exports,arguments)
-},{"assert":2,"bigi":492,"buffer":17,"dup":278}],516:[function(require,module,exports){
-arguments[4][208][0].apply(exports,arguments)
-},{"_process":216,"buffer":17,"dup":208}],517:[function(require,module,exports){
-arguments[4][280][0].apply(exports,arguments)
-},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"dup":280}],518:[function(require,module,exports){
-arguments[4][281][0].apply(exports,arguments)
-},{"./networks":530,"./scripts":533,"assert":2,"bs58check":494,"buffer":17,"dup":281,"typeforce":517}],519:[function(require,module,exports){
-arguments[4][282][0].apply(exports,arguments)
-},{"bs58check":494,"dup":282}],520:[function(require,module,exports){
-arguments[4][283][0].apply(exports,arguments)
-},{"./bufferutils":521,"./crypto":522,"./transaction":534,"assert":2,"buffer":17,"dup":283}],521:[function(require,module,exports){
-arguments[4][284][0].apply(exports,arguments)
-},{"./opcodes":531,"assert":2,"buffer":17,"dup":284}],522:[function(require,module,exports){
-arguments[4][285][0].apply(exports,arguments)
-},{"create-hash":496,"create-hmac":509,"dup":285}],523:[function(require,module,exports){
-arguments[4][286][0].apply(exports,arguments)
-},{"./ecsignature":526,"assert":2,"bigi":492,"buffer":17,"create-hmac":509,"dup":286,"typeforce":517}],524:[function(require,module,exports){
-arguments[4][287][0].apply(exports,arguments)
-},{"./ecdsa":523,"./ecpubkey":525,"./networks":530,"assert":2,"bigi":492,"bs58check":494,"buffer":17,"dup":287,"ecurve":513,"randombytes":516,"typeforce":517}],525:[function(require,module,exports){
-arguments[4][288][0].apply(exports,arguments)
-},{"./address":518,"./crypto":522,"./ecdsa":523,"./networks":530,"buffer":17,"dup":288,"ecurve":513,"typeforce":517}],526:[function(require,module,exports){
-arguments[4][289][0].apply(exports,arguments)
-},{"assert":2,"bigi":492,"buffer":17,"dup":289,"typeforce":517}],527:[function(require,module,exports){
-arguments[4][290][0].apply(exports,arguments)
-},{"./crypto":522,"./eckey":524,"./ecpubkey":525,"./networks":530,"assert":2,"bigi":492,"bs58check":494,"buffer":17,"create-hmac":509,"dup":290,"ecurve":513,"typeforce":517}],528:[function(require,module,exports){
-arguments[4][291][0].apply(exports,arguments)
-},{"./address":518,"./base58check":519,"./block":520,"./bufferutils":521,"./crypto":522,"./ecdsa":523,"./eckey":524,"./ecpubkey":525,"./ecsignature":526,"./hdnode":527,"./message":529,"./networks":530,"./opcodes":531,"./script":532,"./scripts":533,"./transaction":534,"./transaction_builder":535,"./wallet":536,"dup":291}],529:[function(require,module,exports){
-arguments[4][292][0].apply(exports,arguments)
-},{"./bufferutils":521,"./crypto":522,"./ecdsa":523,"./ecpubkey":525,"./ecsignature":526,"./networks":530,"bigi":492,"buffer":17,"dup":292,"ecurve":513}],530:[function(require,module,exports){
-arguments[4][293][0].apply(exports,arguments)
-},{"dup":293}],531:[function(require,module,exports){
-arguments[4][294][0].apply(exports,arguments)
-},{"dup":294}],532:[function(require,module,exports){
-arguments[4][295][0].apply(exports,arguments)
-},{"./bufferutils":521,"./crypto":522,"./opcodes":531,"assert":2,"buffer":17,"dup":295,"typeforce":517}],533:[function(require,module,exports){
-arguments[4][296][0].apply(exports,arguments)
-},{"./ecsignature":526,"./opcodes":531,"./script":532,"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"assert":2,"dup":296,"ecurve":513,"typeforce":517}],534:[function(require,module,exports){
-arguments[4][297][0].apply(exports,arguments)
-},{"./address":518,"./bufferutils":521,"./crypto":522,"./ecsignature":526,"./opcodes":531,"./script":532,"./scripts":533,"assert":2,"buffer":17,"dup":297,"typeforce":517}],535:[function(require,module,exports){
-arguments[4][298][0].apply(exports,arguments)
-},{"./ecpubkey":525,"./ecsignature":526,"./opcodes":531,"./script":532,"./scripts":533,"./transaction":534,"assert":2,"buffer":17,"dup":298}],536:[function(require,module,exports){
-arguments[4][299][0].apply(exports,arguments)
-},{"./address":518,"./bufferutils":521,"./hdnode":527,"./networks":530,"./script":532,"./transaction_builder":535,"assert":2,"buffer":17,"dup":299,"randombytes":516,"typeforce":517}],537:[function(require,module,exports){
+},{"async":394,"coloredcoinsd-wraper":251,"data-storage":499,"events":209,"hdwallet":643,"request":395,"util":247}],489:[function(require,module,exports){
 var fs = require('fs')
 
 function readFile (file, options, callback) {
@@ -66750,7 +66752,7 @@ function readFileSync (file, options) {
     options = {encoding: options}
   }
 
-  var shouldThrow = 'throws' in options ? options.throw : true
+  var shouldThrow = 'throws' in options ? options.throws : true
 
   if (shouldThrow) { // i.e. throw on invalid JSON
     return JSON.parse(fs.readFileSync(file, options), options.reviver)
@@ -66807,7 +66809,7 @@ var jsonfile = {
 
 module.exports = jsonfile
 
-},{"fs":1}],538:[function(require,module,exports){
+},{"fs":1}],490:[function(require,module,exports){
 (function (process){
 var fs = require('fs');
 var path = require('path');
@@ -66870,7 +66872,7 @@ module.exports = mkpath;
 
 
 }).call(this,require('_process'))
-},{"_process":216,"fs":1,"path":215}],539:[function(require,module,exports){
+},{"_process":216,"fs":1,"path":215}],491:[function(require,module,exports){
 (function (process){
 var os = require('os')
 var path = require('path')
@@ -66899,7 +66901,7 @@ function Darwin () {
 
 function Linux () {
   this.tempdir = function () {
-    return '/tmp'
+    return process.env['TMPDIR'] || '/tmp'
   }
 
   this.homedir = function () {
@@ -66907,13 +66909,14 @@ function Linux () {
   }
 
   this.datadir = function (appname) {
-    return this.homedir() + '/.config/' + appname
+    var prefix = process.env['XDG_CONFIG_HOME'] || (this.homedir() + './config')
+    return prefix + '/' + appname
   }
 }
 
 function FreeBSD () {
   this.tempdir = function () {
-    return '/tmp'
+    return process.env['TMPDIR'] || '/tmp'
   }
 
   this.homedir = function () {
@@ -66921,13 +66924,14 @@ function FreeBSD () {
   }
 
   this.datadir = function (appname) {
-    return this.homedir() + '/.config/' + appname
+    var prefix = process.env['XDG_CONFIG_HOME'] || (this.homedir() + './config')
+    return prefix + '/' + appname
   }
 }
 
 function SunOS () {
   this.tempdir = function () {
-    return '/tmp'
+    return process.env['TMPDIR'] || '/tmp'
   }
 
   this.homedir = function () {
@@ -66986,45 +66990,48 @@ if (path.datadir == null) {
 module.exports = path
 
 }).call(this,require('_process'))
-},{"_process":216,"os":214,"path":215}],540:[function(require,module,exports){
+},{"_process":216,"os":214,"path":215}],492:[function(require,module,exports){
 (function (process,Buffer){
-/*global Buffer require exports console setTimeout */
+'use strict';
 
 var net = require("net"),
-    util = require("./lib/util"),
+    URL = require("url"),
+    util = require("util"),
+    utils = require("./lib/utils"),
     Queue = require("./lib/queue"),
-    to_array = require("./lib/to_array"),
+    Command = require("./lib/command"),
     events = require("events"),
-    crypto = require("crypto"),
-    parsers = [], commands,
+    parsers = [],
+    // errorRegEx,
+    // This static list of commands is updated from time to time.
+    // ./lib/commands.js can be updated with generate_commands.js
+    commands = require("./lib/commands"),
     connection_id = 0,
     default_port = 6379,
-    default_host = "127.0.0.1";
+    default_host = "127.0.0.1",
+    debug = function(msg) {
+        if (exports.debug_mode) {
+            console.error(msg);
+        }
+    };
 
-// can set this to true to enable for all connections
-exports.debug_mode = false;
-
-var arraySlice = Array.prototype.slice
-function trace() {
-    if (!exports.debug_mode) return;
-    console.log.apply(null, arraySlice.call(arguments))
-}
+exports.debug_mode = /\bredis\b/i.test(process.env.NODE_DEBUG);
 
 // hiredis might not be installed
 try {
-    require("./lib/parser/hiredis");
-    parsers.push(require("./lib/parser/hiredis"));
+    parsers.push(require("./lib/parsers/hiredis"));
 } catch (err) {
-    if (exports.debug_mode) {
-        console.warn("hiredis parser not installed.");
-    }
+    /* istanbul ignore next: won't be reached with tests */
+    debug("Hiredis parser not installed.");
 }
 
-parsers.push(require("./lib/parser/javascript"));
+parsers.push(require("./lib/parsers/javascript"));
 
 function RedisClient(stream, options) {
+    options = options || {};
+
     this.stream = stream;
-    this.options = options = options || {};
+    this.options = options;
 
     this.connection_id = ++connection_id;
     this.connected = false;
@@ -67037,45 +67044,42 @@ function RedisClient(stream, options) {
         this.options.socket_keepalive = true;
     }
     this.should_buffer = false;
-    this.command_queue_high_water = this.options.command_queue_high_water || 1000;
-    this.command_queue_low_water = this.options.command_queue_low_water || 0;
-    this.max_attempts = null;
-    if (options.max_attempts && !isNaN(options.max_attempts) && options.max_attempts > 0) {
-        this.max_attempts = +options.max_attempts;
-    }
+    this.command_queue_high_water = options.command_queue_high_water || 1000;
+    this.command_queue_low_water = options.command_queue_low_water || 0;
+    this.max_attempts = +options.max_attempts || 0;
     this.command_queue = new Queue(); // holds sent commands to de-pipeline them
     this.offline_queue = new Queue(); // holds commands issued but not able to be sent
     this.commands_sent = 0;
-    this.connect_timeout = false;
-    if (options.connect_timeout && !isNaN(options.connect_timeout) && options.connect_timeout > 0) {
-        this.connect_timeout = +options.connect_timeout;
-    }
+    this.connect_timeout = +options.connect_timeout || 86400000; // 24 * 60 * 60 * 1000 ms
     this.enable_offline_queue = true;
-    if (typeof this.options.enable_offline_queue === "boolean") {
-        this.enable_offline_queue = this.options.enable_offline_queue;
+    if (options.enable_offline_queue === false) {
+        this.enable_offline_queue = false;
     }
-    this.retry_max_delay = null;
-    if (options.retry_max_delay !== undefined && !isNaN(options.retry_max_delay) && options.retry_max_delay > 0) {
-        this.retry_max_delay = options.retry_max_delay;
-    }
-
+    this.retry_max_delay = +options.retry_max_delay || null;
     this.initialize_retry_vars();
     this.pub_sub_mode = false;
     this.subscription_set = {};
     this.monitoring = false;
     this.closing = false;
     this.server_info = {};
-    this.auth_pass = null;
-    if (options.auth_pass !== undefined) {
-        this.auth_pass = options.auth_pass;
-    }
+    this.auth_pass = options.auth_pass;
     this.parser_module = null;
-    this.selected_db = null;	// save the selected db here, used when reconnecting
-
+    this.selected_db = null; // save the selected db here, used when reconnecting
     this.old_state = null;
 
-    this.install_stream_listeners();
+    // if (options.callFunctionOnError) {
+    //     var errors = Object.keys(options.callFunctionOnError);
+    //     errorRegEx = new Array(errors.length);
+    //     errors.forEach(function(entry, i) {
+    //         errorRegEx[i] = {
+    //             regex: new RegExp(entry),
+    //             func: options.callFunctionOnError[entry].func,
+    //             repeat: options.callFunctionOnError[entry].repeat
+    //         };
+    //     });
+    // }
 
+    this.install_stream_listeners();
     events.EventEmitter.call(this);
 }
 util.inherits(RedisClient, events.EventEmitter);
@@ -67089,11 +67093,13 @@ RedisClient.prototype.install_stream_listeners = function() {
     });
 
     this.stream.on("data", function (buffer_from_socket) {
-        self.on_data(buffer_from_socket);
+        // The data.toString() has a significant impact on big chunks and therefor this should only be used if necessary
+        // debug("Net read " + this.address + " id " + this.connection_id + ": " + data.toString());
+        self.reply_parser.execute(buffer_from_socket);
     });
 
-    this.stream.on("error", function (msg) {
-        self.on_error(msg.message);
+    this.stream.on("error", function (err) {
+        self.on_error(err);
     });
 
     this.stream.on("close", function () {
@@ -67113,118 +67119,103 @@ RedisClient.prototype.install_stream_listeners = function() {
 RedisClient.prototype.initialize_retry_vars = function () {
     this.retry_timer = null;
     this.retry_totaltime = 0;
-    this.retry_delay = 150;
+    this.retry_delay = 200;
     this.retry_backoff = 1.7;
     this.attempts = 1;
 };
 
 RedisClient.prototype.unref = function () {
-    trace("User requesting to unref the connection");
     if (this.connected) {
-        trace("unref'ing the socket connection");
+        debug("Unref'ing the socket connection");
         this.stream.unref();
-    }
-    else {
-        trace("Not connected yet, will unref later");
+    } else {
+        debug("Not connected yet, will unref later");
         this.once("connect", function () {
             this.unref();
-        })
+        });
     }
 };
 
 // flush offline_queue and command_queue, erroring any items with a callback first
-RedisClient.prototype.flush_and_error = function (message) {
-    var command_obj, error;
+RedisClient.prototype.flush_and_error = function (error) {
+    var command_obj;
 
-    error = new Error(message);
-
-    while (this.offline_queue.length > 0) {
-        command_obj = this.offline_queue.shift();
+    while (command_obj = this.offline_queue.shift()) {
         if (typeof command_obj.callback === "function") {
-            try {
-                command_obj.callback(error);
-            } catch (callback_err) {
-                process.nextTick(function () {
-                    throw callback_err;
-                });
-            }
+            error.command = command_obj.command.toUpperCase();
+            command_obj.callback(error);
         }
     }
     this.offline_queue = new Queue();
 
-    while (this.command_queue.length > 0) {
-        command_obj = this.command_queue.shift();
+    while (command_obj = this.command_queue.shift()) {
         if (typeof command_obj.callback === "function") {
-            try {
-                command_obj.callback(error);
-            } catch (callback_err) {
-                process.nextTick(function () {
-                    throw callback_err;
-                });
-            }
+            error.command = command_obj.command.toUpperCase();
+            command_obj.callback(error);
         }
     }
     this.command_queue = new Queue();
 };
 
-RedisClient.prototype.on_error = function (msg) {
-    var message = "Redis connection to " + this.address + " failed - " + msg;
-
+RedisClient.prototype.on_error = function (err) {
     if (this.closing) {
         return;
     }
 
-    if (exports.debug_mode) {
-        console.warn(message);
-    }
+    err.message = "Redis connection to " + this.address + " failed - " + err.message;
 
-    this.flush_and_error(message);
+    debug(err.message);
 
     this.connected = false;
     this.ready = false;
-
-    this.emit("error", new Error(message));
-    // "error" events get turned into exceptions if they aren't listened for.  If the user handled this error
+    this.emit("error", err);
+    // "error" events get turned into exceptions if they aren't listened for. If the user handled this error
     // then we should try to reconnect.
     this.connection_gone("error");
 };
 
+var noPasswordIsSet = /no password is set/;
+var loading = /LOADING/;
+
 RedisClient.prototype.do_auth = function () {
     var self = this;
 
-    if (exports.debug_mode) {
-        console.log("Sending auth to " + self.address + " id " + self.connection_id);
-    }
+    debug("Sending auth to " + self.address + " id " + self.connection_id);
+
     self.send_anyway = true;
     self.send_command("auth", [this.auth_pass], function (err, res) {
         if (err) {
-            if (err.toString().match("LOADING")) {
-                // if redis is still loading the db, it will not authenticate and everything else will fail
-                console.log("Redis still loading, trying to authenticate later");
+            /* istanbul ignore if: this is almost impossible to test */
+            if (loading.test(err.message)) {
+                // If redis is still loading the db, it will not authenticate and everything else will fail
+                debug("Redis still loading, trying to authenticate later");
                 setTimeout(function () {
                     self.do_auth();
-                }, 2000); // TODO - magic number alert
+                }, 333);
                 return;
-            } else if (err.toString().match("no password is set")) {
-                console.log("Warning: Redis server does not require a password, but a password was supplied.")
+            } else if (noPasswordIsSet.test(err.message)) {
+                debug("Warning: Redis server does not require a password, but a password was supplied.");
                 err = null;
                 res = "OK";
+            } else if (self.auth_callback) {
+                self.auth_callback(err);
+                self.auth_callback = null;
+                return;
             } else {
-                return self.emit("error", new Error("Auth error: " + err.message));
+                self.emit("error", err);
+                return;
             }
         }
-        if (res.toString() !== "OK") {
-            return self.emit("error", new Error("Auth failed: " + res.toString()));
-        }
-        if (exports.debug_mode) {
-            console.log("Auth succeeded " + self.address + " id " + self.connection_id);
-        }
+
+        res = res.toString();
+        debug("Auth succeeded " + self.address + " id " + self.connection_id);
+
         if (self.auth_callback) {
-            self.auth_callback(err, res);
+            self.auth_callback(null, res);
             self.auth_callback = null;
         }
 
-        // now we are really connected
+        // Now we are really connected
         self.emit("connect");
         self.initialize_retry_vars();
 
@@ -67238,9 +67229,7 @@ RedisClient.prototype.do_auth = function () {
 };
 
 RedisClient.prototype.on_connect = function () {
-    if (exports.debug_mode) {
-        console.log("Stream connected " + this.address + " id " + this.connection_id);
-    }
+    debug("Stream connected " + this.address + " id " + this.connection_id);
 
     this.connected = true;
     this.ready = false;
@@ -67255,7 +67244,7 @@ RedisClient.prototype.on_connect = function () {
 
     this.init_parser();
 
-    if (this.auth_pass) {
+    if (typeof this.auth_pass === 'string') {
         this.do_auth();
     } else {
         this.emit("connect");
@@ -67273,47 +67262,37 @@ RedisClient.prototype.init_parser = function () {
     var self = this;
 
     if (this.options.parser) {
-        if (! parsers.some(function (parser) {
+        if (!parsers.some(function (parser) {
             if (parser.name === self.options.parser) {
                 self.parser_module = parser;
-                if (exports.debug_mode) {
-                    console.log("Using parser module: " + self.parser_module.name);
-                }
+                debug("Using parser module: " + self.parser_module.name);
                 return true;
             }
         })) {
+            // Do not emit this error
+            // This should take down the app if anyone made such a huge mistake or should somehow be handled in user code
             throw new Error("Couldn't find named parser " + self.options.parser + " on this system");
         }
     } else {
-        if (exports.debug_mode) {
-            console.log("Using default parser module: " + parsers[0].name);
-        }
+        debug("Using default parser module: " + parsers[0].name);
         this.parser_module = parsers[0];
     }
 
-    this.parser_module.debug_mode = exports.debug_mode;
-
     // return_buffers sends back Buffers from parser to callback. detect_buffers sends back Buffers from parser, but
     // converts to Strings if the input arguments are not Buffers.
-    this.reply_parser = new this.parser_module.Parser({
-        return_buffers: self.options.return_buffers || self.options.detect_buffers || false
-    });
-
-    // "reply error" is an error sent back by Redis
-    this.reply_parser.on("reply error", function (reply) {
-        if (reply instanceof Error) {
-            self.return_error(reply);
-        } else {
-            self.return_error(new Error(reply));
-        }
-    });
-    this.reply_parser.on("reply", function (reply) {
-        self.return_reply(reply);
-    });
-    // "error" is bad.  Somehow the parser got confused.  It'll try to reset and continue.
-    this.reply_parser.on("error", function (err) {
-        self.emit("error", new Error("Redis reply parser error: " + err.stack));
-    });
+    this.reply_parser = new this.parser_module.Parser(self.options.return_buffers || self.options.detect_buffers || false);
+    // Important: Only send results / errors async.
+    // That way the result / error won't stay in a try catch block and catch user things
+    this.reply_parser.send_error = function (data) {
+        process.nextTick(function() {
+            self.return_error(data);
+        });
+    };
+    this.reply_parser.send_reply = function (data) {
+        process.nextTick(function() {
+            self.return_reply(data);
+        });
+    };
 };
 
 RedisClient.prototype.on_ready = function () {
@@ -67347,16 +67326,17 @@ RedisClient.prototype.on_ready = function () {
             }
         };
         Object.keys(this.subscription_set).forEach(function (key) {
-            var parts = key.split(" ");
-            if (exports.debug_mode) {
-                console.warn("sending pub/sub on_ready " + parts[0] + ", " + parts[1]);
-            }
+            var space_index = key.indexOf(" ");
+            var parts = [key.slice(0, space_index), key.slice(space_index + 1)];
+            debug("Sending pub/sub on_ready " + parts[0] + ", " + parts[1]);
             callback_count++;
             self.send_command(parts[0] + "scribe", [parts[1]], callback);
         });
         return;
-    } else if (this.monitoring) {
-        this.send_command("monitor");
+    }
+
+    if (this.monitoring) {
+        this.send_command("monitor", []);
     } else {
         this.send_offline_queue();
     }
@@ -67364,44 +67344,65 @@ RedisClient.prototype.on_ready = function () {
 };
 
 RedisClient.prototype.on_info_cmd = function (err, res) {
-    var self = this, obj = {}, lines, retry_time;
-
     if (err) {
-        return self.emit("error", new Error("Ready check failed: " + err.message));
+        err.message = "Ready check failed: " + err.message;
+        this.emit("error", err);
+        return;
     }
 
-    lines = res.toString().split("\r\n");
+    /* istanbul ignore if: some servers might not respond with any info data. This is just a safety check that is difficult to test */
+    if (!res) {
+        debug('The info command returned without any data.');
+        this.server_info = {};
+        this.on_ready();
+        return;
+    }
 
-    lines.forEach(function (line) {
-        var parts = line.split(':');
+    var self = this;
+    var obj = {};
+    var lines = res.toString().split("\r\n");
+    var i = 0;
+    var key = 'db' + i;
+    var line, retry_time, parts, sub_parts;
+
+    for (i = 0; i < lines.length; i++) {
+        parts = lines[i].split(':');
         if (parts[1]) {
             obj[parts[0]] = parts[1];
         }
-    });
+    }
 
     obj.versions = [];
-    if( obj.redis_version ){
+    /* istanbul ignore else: some redis servers do not send the version */
+    if (obj.redis_version) {
         obj.redis_version.split('.').forEach(function (num) {
             obj.versions.push(+num);
         });
     }
 
+    while (obj[key]) {
+        parts = obj[key].split(',');
+        obj[key] = {};
+        while (line = parts.pop()) {
+            sub_parts = line.split('=');
+            obj[key][sub_parts[0]] = +sub_parts[1];
+        }
+        i++;
+        key = 'db' + i;
+    }
+
     // expose info key/vals to users
     this.server_info = obj;
 
-    if (!obj.loading || (obj.loading && obj.loading === "0")) {
-        if (exports.debug_mode) {
-            console.log("Redis server ready.");
-        }
+    if (!obj.loading || obj.loading === "0") {
+        debug("Redis server ready.");
         this.on_ready();
     } else {
         retry_time = obj.loading_eta_seconds * 1000;
         if (retry_time > 1000) {
             retry_time = 1000;
         }
-        if (exports.debug_mode) {
-            console.log("Redis server still loading, trying again in " + retry_time);
-        }
+        debug("Redis server still loading, trying again in " + retry_time);
         setTimeout(function () {
             self.ready_check();
         }, retry_time);
@@ -67411,9 +67412,7 @@ RedisClient.prototype.on_info_cmd = function (err, res) {
 RedisClient.prototype.ready_check = function () {
     var self = this;
 
-    if (exports.debug_mode) {
-        console.log("checking server ready state...");
-    }
+    debug("Checking server ready state...");
 
     this.send_anyway = true;  // secret flag to send_command to send something even if not "ready"
     this.info(function (err, res) {
@@ -67425,11 +67424,8 @@ RedisClient.prototype.ready_check = function () {
 RedisClient.prototype.send_offline_queue = function () {
     var command_obj, buffered_writes = 0;
 
-    while (this.offline_queue.length > 0) {
-        command_obj = this.offline_queue.shift();
-        if (exports.debug_mode) {
-            console.log("Sending offline command: " + command_obj.command);
-        }
+    while (command_obj = this.offline_queue.shift()) {
+        debug("Sending offline command: " + command_obj.command);
         buffered_writes += !this.send_command(command_obj.command, command_obj.args, command_obj.callback);
     }
     this.offline_queue = new Queue();
@@ -67441,17 +67437,31 @@ RedisClient.prototype.send_offline_queue = function () {
     }
 };
 
-RedisClient.prototype.connection_gone = function (why) {
-    var self = this;
+var retry_connection = function (self) {
+    debug("Retrying connection...");
 
+    self.emit("reconnecting", {
+        delay: self.retry_delay,
+        attempt: self.attempts
+    });
+
+    self.retry_totaltime += self.retry_delay;
+    self.attempts += 1;
+    self.retry_delay = Math.round(self.retry_delay * self.retry_backoff);
+
+    self.stream = net.createConnection(self.connectionOption);
+    self.install_stream_listeners();
+
+    self.retry_timer = null;
+};
+
+RedisClient.prototype.connection_gone = function (why) {
     // If a retry is already in progress, just let that happen
     if (this.retry_timer) {
         return;
     }
 
-    if (exports.debug_mode) {
-        console.warn("Redis connection is gone from " + why + " event.");
-    }
+    debug("Redis connection is gone from " + why + " event.");
     this.connected = false;
     this.ready = false;
 
@@ -67468,168 +67478,93 @@ RedisClient.prototype.connection_gone = function (why) {
     }
 
     // since we are collapsing end and close, users don't expect to be called twice
-    if (! this.emitted_end) {
+    if (!this.emitted_end) {
         this.emit("end");
         this.emitted_end = true;
     }
 
-    this.flush_and_error("Redis connection gone from " + why + " event.");
-
     // If this is a requested shutdown, then don't retry
     if (this.closing) {
-        this.retry_timer = null;
-        if (exports.debug_mode) {
-            console.warn("connection ended from quit command, not retrying.");
-        }
+        debug("Connection ended from quit command, not retrying.");
+        this.flush_and_error(new Error("Redis connection gone from " + why + " event."));
         return;
     }
 
-    var nextDelay = Math.floor(this.retry_delay * this.retry_backoff);
-    if (this.retry_max_delay !== null && nextDelay > this.retry_max_delay) {
+    if (this.max_attempts !== 0 && this.attempts >= this.max_attempts || this.retry_totaltime >= this.connect_timeout) {
+        var message = this.retry_totaltime >= this.connect_timeout ?
+            'connection timeout exceeded.' :
+            'maximum connection attempts exceeded.';
+        var error = new Error("Redis connection in broken state: " + message);
+        error.code = 'CONNECTION_BROKEN';
+        this.flush_and_error(error);
+        this.emit('error', error);
+        this.end();
+        return;
+    }
+
+    if (this.retry_max_delay !== null && this.retry_delay > this.retry_max_delay) {
         this.retry_delay = this.retry_max_delay;
-    } else {
-        this.retry_delay = nextDelay;
+    } else if (this.retry_totaltime + this.retry_delay > this.connect_timeout) {
+        // Do not exceed the maximum
+        this.retry_delay = this.connect_timeout - this.retry_totaltime;
     }
 
-    if (exports.debug_mode) {
-        console.log("Retry connection in " + this.retry_delay + " ms");
-    }
+    debug("Retry connection in " + this.retry_delay + " ms");
 
-    if (this.max_attempts && this.attempts >= this.max_attempts) {
-        this.retry_timer = null;
-        // TODO - some people need a "Redis is Broken mode" for future commands that errors immediately, and others
-        // want the program to exit.  Right now, we just log, which doesn't really help in either case.
-        console.error("node_redis: Couldn't get Redis connection after " + this.max_attempts + " attempts.");
-        return;
-    }
-
-    this.attempts += 1;
-    this.emit("reconnecting", {
-        delay: self.retry_delay,
-        attempt: self.attempts
-    });
-    this.retry_timer = setTimeout(function () {
-        if (exports.debug_mode) {
-            console.log("Retrying connection...");
-        }
-
-        self.retry_totaltime += self.retry_delay;
-
-        if (self.connect_timeout && self.retry_totaltime >= self.connect_timeout) {
-            self.retry_timer = null;
-            // TODO - engage Redis is Broken mode for future commands, or whatever
-            console.error("node_redis: Couldn't get Redis connection after " + self.retry_totaltime + "ms.");
-            return;
-        }
-
-        self.stream = net.createConnection(self.connectionOption);
-        self.install_stream_listeners();
-        self.retry_timer = null;
-    }, this.retry_delay);
-};
-
-RedisClient.prototype.on_data = function (data) {
-    if (exports.debug_mode) {
-        console.log("net read " + this.address + " id " + this.connection_id + ": " + data.toString());
-    }
-
-    try {
-        this.reply_parser.execute(data);
-    } catch (err) {
-        // This is an unexpected parser problem, an exception that came from the parser code itself.
-        // Parser should emit "error" events if it notices things are out of whack.
-        // Callbacks that throw exceptions will land in return_reply(), below.
-        // TODO - it might be nice to have a different "error" event for different types of errors
-        this.emit("error", err);
-    }
+    this.retry_timer = setTimeout(retry_connection, this.retry_delay, this);
 };
 
 RedisClient.prototype.return_error = function (err) {
-    var command_obj = this.command_queue.shift(), queue_len = this.command_queue.getLength();
+    // if (errorRegEx) {
+    //     var func = function() {
+    //         console.log('COOL!');
+    //     };
+    //     for (var i = 0; i < errorRegEx.length; i++) {
+    //         if (errorRegEx[i].regex.test(err.message)) {
+    //             errorRegEx[i].func(func);
+    //             if (errorRegEx[i].repeat) {
+    //                 var command_obj = this.command_queue.shift();
+    //                 this.send_command(command_obj.command, command_obj.args, command_obj.sub_command, command_obj.buffer_args, command_obj.callback);
+    //             }
+    //             return;
+    //         }
+    //     }
+    // }
+
+
+    var command_obj = this.command_queue.shift(), queue_len = this.command_queue.length;
+    // send_command might have been used wrong => catch those cases too
+    // if (command_obj === undefined) {
+    //     this.emit('error', err);
+    // }
+    if (command_obj.command && command_obj.command.toUpperCase) {
+        err.command = command_obj.command.toUpperCase();
+    } else {
+        err.command = command_obj.command;
+    }
+
+    var match = err.message.match(utils.errCode);
+    // LUA script could return user errors that don't behave like all other errors!
+    if (match) {
+        err.code = match[1];
+    }
 
     if (this.pub_sub_mode === false && queue_len === 0) {
         this.command_queue = new Queue();
         this.emit("idle");
     }
+
     if (this.should_buffer && queue_len <= this.command_queue_low_water) {
         this.emit("drain");
         this.should_buffer = false;
     }
 
-    if (command_obj && typeof command_obj.callback === "function") {
-        try {
-            command_obj.callback(err);
-        } catch (callback_err) {
-            // if a callback throws an exception, re-throw it on a new stack so the parser can keep going
-            process.nextTick(function () {
-                throw callback_err;
-            });
-        }
+    if (command_obj.callback) {
+        command_obj.callback(err);
     } else {
-        console.log("node_redis: no callback to send error: " + err.message);
-        // this will probably not make it anywhere useful, but we might as well throw
-        process.nextTick(function () {
-            throw err;
-        });
+        this.emit('error', err);
     }
 };
-
-// if a callback throws an exception, re-throw it on a new stack so the parser can keep going.
-// if a domain is active, emit the error on the domain, which will serve the same function.
-// put this try/catch in its own function because V8 doesn't optimize this well yet.
-function try_callback(callback, reply) {
-    try {
-        callback(null, reply);
-    } catch (err) {
-        if (process.domain) {
-            var currDomain = process.domain;
-            currDomain.emit('error', err);
-            if (process.domain === currDomain) {
-                currDomain.exit();
-            }
-        } else {
-            process.nextTick(function () {
-                throw err;
-            });
-        }
-    }
-}
-
-// hgetall converts its replies to an Object.  If the reply is empty, null is returned.
-function reply_to_object(reply) {
-    var obj = {}, j, jl, key, val;
-
-    if (reply.length === 0) {
-        return null;
-    }
-
-    for (j = 0, jl = reply.length; j < jl; j += 2) {
-        key = reply[j].toString('binary');
-        val = reply[j + 1];
-        obj[key] = val;
-    }
-
-    return obj;
-}
-
-function reply_to_strings(reply) {
-    var i;
-
-    if (Buffer.isBuffer(reply)) {
-        return reply.toString();
-    }
-
-    if (Array.isArray(reply)) {
-        for (i = 0; i < reply.length; i++) {
-            if (reply[i] !== null && reply[i] !== undefined) {
-                reply[i] = reply[i].toString();
-            }
-        }
-        return reply;
-    }
-
-    return reply;
-}
 
 RedisClient.prototype.return_reply = function (reply) {
     var command_obj, len, type, timestamp, argindex, args, queue_len;
@@ -67637,18 +67572,17 @@ RedisClient.prototype.return_reply = function (reply) {
     // If the "reply" here is actually a message received asynchronously due to a
     // pubsub subscription, don't pop the command queue as we'll only be consuming
     // the head command prematurely.
-    if (Array.isArray(reply) && reply.length > 0 && reply[0]) {
+    if (this.pub_sub_mode && Array.isArray(reply) && reply[0]) {
         type = reply[0].toString();
     }
 
-    if (this.pub_sub_mode && (type == 'message' || type == 'pmessage')) {
-        trace("received pubsub message");
-    }
-    else {
+    if (this.pub_sub_mode && (type === 'message' || type === 'pmessage')) {
+        debug("Received pubsub message");
+    } else {
         command_obj = this.command_queue.shift();
     }
 
-    queue_len = this.command_queue.getLength();
+    queue_len = this.command_queue.length;
 
     if (this.pub_sub_mode === false && queue_len === 0) {
         this.command_queue = new Queue();  // explicitly reclaim storage from old Queue
@@ -67661,53 +67595,62 @@ RedisClient.prototype.return_reply = function (reply) {
 
     if (command_obj && !command_obj.sub_command) {
         if (typeof command_obj.callback === "function") {
-            if (this.options.detect_buffers && command_obj.buffer_args === false) {
-                // If detect_buffers option was specified, then the reply from the parser will be Buffers.
-                // If this command did not use Buffer arguments, then convert the reply to Strings here.
-                reply = reply_to_strings(reply);
+            if ('exec' !== command_obj.command) {
+                if (this.options.detect_buffers && command_obj.buffer_args === false) {
+                    // If detect_buffers option was specified, then the reply from the parser will be Buffers.
+                    // If this command did not use Buffer arguments, then convert the reply to Strings here.
+                    reply = utils.reply_to_strings(reply);
+                }
+
+                // TODO - confusing and error-prone that hgetall is special cased in two places
+                if (reply && 'hgetall' === command_obj.command) {
+                    reply = utils.reply_to_object(reply);
+                }
             }
 
-            // TODO - confusing and error-prone that hgetall is special cased in two places
-            if (reply && 'hgetall' === command_obj.command.toLowerCase()) {
-                reply = reply_to_object(reply);
-            }
-
-            try_callback(command_obj.callback, reply);
-        } else if (exports.debug_mode) {
-            console.log("no callback for reply: " + (reply && reply.toString && reply.toString()));
+            command_obj.callback(null, reply);
+        } else {
+            debug("No callback for reply");
         }
-    } else if (this.pub_sub_mode || (command_obj && command_obj.sub_command)) {
+    } else if (this.pub_sub_mode || command_obj && command_obj.sub_command) {
         if (Array.isArray(reply)) {
+            if (!this.options.return_buffers && (!command_obj || this.options.detect_buffers && command_obj.buffer_args === false)) {
+                reply = utils.reply_to_strings(reply);
+            }
             type = reply[0].toString();
 
             if (type === "message") {
-                this.emit("message", reply[1].toString(), reply[2]); // channel, message
+                this.emit("message", reply[1], reply[2]); // channel, message
             } else if (type === "pmessage") {
-                this.emit("pmessage", reply[1].toString(), reply[2].toString(), reply[3]); // pattern, channel, message
+                this.emit("pmessage", reply[1], reply[2], reply[3]); // pattern, channel, message
             } else if (type === "subscribe" || type === "unsubscribe" || type === "psubscribe" || type === "punsubscribe") {
                 if (reply[2] === 0) {
                     this.pub_sub_mode = false;
-                    if (this.debug_mode) {
-                        console.log("All subscriptions removed, exiting pub/sub mode");
-                    }
+                    debug("All subscriptions removed, exiting pub/sub mode");
                 } else {
                     this.pub_sub_mode = true;
                 }
                 // subscribe commands take an optional callback and also emit an event, but only the first response is included in the callback
                 // TODO - document this or fix it so it works in a more obvious way
-                // reply[1] can be null
-                var reply1String = (reply[1] === null) ? null : reply[1].toString();
                 if (command_obj && typeof command_obj.callback === "function") {
-                    try_callback(command_obj.callback, reply1String);
+                    command_obj.callback(null, reply[1]);
                 }
-                this.emit(type, reply1String, reply[2]); // channel, count
+                this.emit(type, reply[1], reply[2]); // channel, count
             } else {
-                throw new Error("subscriptions are active but got unknown reply type " + type);
+                this.emit("error", new Error("subscriptions are active but got unknown reply type " + type));
+                return;
             }
-        } else if (! this.closing) {
-            throw new Error("subscriptions are active but got an invalid reply: " + reply);
+        } else if (!this.closing) {
+            this.emit("error", new Error("subscriptions are active but got an invalid reply: " + reply));
+            return;
         }
-    } else if (this.monitoring) {
+    }
+    /* istanbul ignore else: this is a safety check that we should not be able to trigger */
+    else if (this.monitoring) {
+        if (Buffer.isBuffer(reply)) {
+            reply = reply.toString();
+        }
+        // If in monitoring mode only two commands are valid ones: AUTH and MONITOR wich reply with OK
         len = reply.indexOf(" ");
         timestamp = reply.slice(0, len);
         argindex = reply.indexOf('"');
@@ -67716,102 +67659,73 @@ RedisClient.prototype.return_reply = function (reply) {
         });
         this.emit("monitor", timestamp, args);
     } else {
-        throw new Error("node_redis command queue state error. If you can reproduce this, please report it.");
+        var err = new Error("node_redis command queue state error. If you can reproduce this, please report it.");
+        err.command_obj = command_obj;
+        this.emit("error", err);
     }
 };
 
-// This Command constructor is ever so slightly faster than using an object literal, but more importantly, using
-// a named constructor helps it show up meaningfully in the V8 CPU profiler and in heap snapshots.
-function Command(command, args, sub_command, buffer_args, callback) {
-    this.command = command;
-    this.args = args;
-    this.sub_command = sub_command;
-    this.buffer_args = buffer_args;
-    this.callback = callback;
-}
-
 RedisClient.prototype.send_command = function (command, args, callback) {
-    var arg, command_obj, i, il, elem_count, buffer_args, stream = this.stream, command_str = "", buffered_writes = 0, last_arg_type, lcaseCommand;
+    var arg, command_obj, i, elem_count, buffer_args, stream = this.stream, command_str = "", buffered_writes = 0, err;
 
-    if (typeof command !== "string") {
-        throw new Error("First argument to send_command must be the command name string, not " + typeof command);
-    }
-
-    if (Array.isArray(args)) {
-        if (typeof callback === "function") {
-            // probably the fastest way:
-            //     client.command([arg1, arg2], cb);  (straight passthrough)
-            //         send_command(command, [arg1, arg2], cb);
-        } else if (! callback) {
-            // most people find this variable argument length form more convenient, but it uses arguments, which is slower
-            //     client.command(arg1, arg2, cb);   (wraps up arguments into an array)
-            //       send_command(command, [arg1, arg2, cb]);
-            //     client.command(arg1, arg2);   (callback is optional)
-            //       send_command(command, [arg1, arg2]);
-            //     client.command(arg1, arg2, undefined);   (callback is undefined)
-            //       send_command(command, [arg1, arg2, undefined]);
-            last_arg_type = typeof args[args.length - 1];
-            if (last_arg_type === "function" || last_arg_type === "undefined") {
-                callback = args.pop();
-            }
-        } else {
-            throw new Error("send_command: last argument must be a callback or undefined");
+    if (args === undefined) {
+        args = [];
+    } else if (!callback) {
+        if (typeof args[args.length - 1] === "function") {
+            callback = args.pop();
+        } else if (typeof args[args.length - 1] === "undefined") {
+            args.pop();
         }
-    } else {
-        throw new Error("send_command: second argument must be an array");
     }
 
-    if (callback && process.domain) callback = process.domain.bind(callback);
-
-    // if the last argument is an array and command is sadd or srem, expand it out:
-    //     client.sadd(arg1, [arg2, arg3, arg4], cb);
-    //  converts to:
-    //     client.sadd(arg1, arg2, arg3, arg4, cb);
-    lcaseCommand = command.toLowerCase();
-    if ((lcaseCommand === 'sadd' || lcaseCommand === 'srem') && args.length > 0 && Array.isArray(args[args.length - 1])) {
-        args = args.slice(0, -1).concat(args[args.length - 1]);
+    if (process.domain && callback) {
+        callback = process.domain.bind(callback);
     }
 
-    // if the value is undefined or null and command is set or setx, need not to send message to redis
     if (command === 'set' || command === 'setex') {
-        if(args[args.length - 1] === undefined || args[args.length - 1] === null) {
-            var err = new Error('send_command: ' + command + ' value must not be undefined or null');
-            return callback && callback(err);
+        // if the value is undefined or null and command is set or setx, need not to send message to redis
+        if (args[args.length - 1] === undefined || args[args.length - 1] === null) {
+            command = command.toUpperCase();
+            err = new Error('send_command: ' + command + ' value must not be undefined or null');
+            err.command = command;
+            if (callback) {
+                return callback && callback(err);
+            }
+            this.emit("error", err);
+            return;
         }
     }
 
     buffer_args = false;
-    for (i = 0, il = args.length, arg; i < il; i += 1) {
+    for (i = 0; i < args.length; i += 1) {
         if (Buffer.isBuffer(args[i])) {
             buffer_args = true;
+            break;
         }
     }
 
     command_obj = new Command(command, args, false, buffer_args, callback);
 
-    if ((!this.ready && !this.send_anyway) || !stream.writable) {
-        if (exports.debug_mode) {
-            if (!stream.writable) {
-                console.log("send command: stream is not writeable.");
+    if (!this.ready && !this.send_anyway || !stream.writable) {
+        if (this.closing || !this.enable_offline_queue) {
+            command = command.toUpperCase();
+            if (!this.closing) {
+                err = new Error(command + ' can\'t be processed. Stream not writeable and enable_offline_queue is deactivated.');
+            } else {
+                err = new Error(command + ' can\'t be processed. The connection has already been closed.');
             }
-        }
-
-        if (this.enable_offline_queue) {
-            if (exports.debug_mode) {
-                console.log("Queueing " + command + " for next server connection.");
+            err.command = command;
+            if (callback) {
+                callback(err);
+            } else {
+                this.emit('error', err);
             }
+        } else {
+            debug("Queueing " + command + " for next server connection.");
             this.offline_queue.push(command_obj);
             this.should_buffer = true;
-        } else {
-            var not_writeable_error = new Error('send_command: stream not writeable. enable_offline_queue is false');
-            if (command_obj.callback) {
-                command_obj.callback(not_writeable_error);
-            } else {
-                throw not_writeable_error;
-            }
         }
-
-        return false;
+        return;
     }
 
     if (command === "subscribe" || command === "psubscribe" || command === "unsubscribe" || command === "punsubscribe") {
@@ -67821,7 +67735,10 @@ RedisClient.prototype.send_command = function (command, args, callback) {
     } else if (command === "quit") {
         this.closing = true;
     } else if (this.pub_sub_mode === true) {
-        throw new Error("Connection in subscriber mode, only subscriber commands may be used");
+        err = new Error("Connection in subscriber mode, only subscriber commands may be used");
+        err.command = command.toUpperCase();
+        this.emit("error", err);
+        return;
     }
     this.command_queue.push(command_obj);
     this.commands_sent += 1;
@@ -67833,56 +67750,44 @@ RedisClient.prototype.send_command = function (command, args, callback) {
 
     command_str = "*" + elem_count + "\r\n$" + command.length + "\r\n" + command + "\r\n";
 
-    if (! buffer_args) { // Build up a string and send entire command in one write
-        for (i = 0, il = args.length, arg; i < il; i += 1) {
+    if (!buffer_args) { // Build up a string and send entire command in one write
+        for (i = 0; i < args.length; i += 1) {
             arg = args[i];
             if (typeof arg !== "string") {
                 arg = String(arg);
             }
             command_str += "$" + Buffer.byteLength(arg) + "\r\n" + arg + "\r\n";
         }
-        if (exports.debug_mode) {
-            console.log("send " + this.address + " id " + this.connection_id + ": " + command_str);
-        }
+        debug("Send " + this.address + " id " + this.connection_id + ": " + command_str);
         buffered_writes += !stream.write(command_str);
     } else {
-        if (exports.debug_mode) {
-            console.log("send command (" + command_str + ") has Buffer arguments");
-        }
+        debug("Send command (" + command_str + ") has Buffer arguments");
         buffered_writes += !stream.write(command_str);
 
-        for (i = 0, il = args.length, arg; i < il; i += 1) {
+        for (i = 0; i < args.length; i += 1) {
             arg = args[i];
-            if (!(Buffer.isBuffer(arg) || arg instanceof String)) {
+            if (!(Buffer.isBuffer(arg) || typeof arg === 'string')) {
                 arg = String(arg);
             }
 
             if (Buffer.isBuffer(arg)) {
                 if (arg.length === 0) {
-                    if (exports.debug_mode) {
-                        console.log("send_command: using empty string for 0 length buffer");
-                    }
+                    debug("send_command: using empty string for 0 length buffer");
                     buffered_writes += !stream.write("$0\r\n\r\n");
                 } else {
                     buffered_writes += !stream.write("$" + arg.length + "\r\n");
                     buffered_writes += !stream.write(arg);
                     buffered_writes += !stream.write("\r\n");
-                    if (exports.debug_mode) {
-                        console.log("send_command: buffer send " + arg.length + " bytes");
-                    }
+                    debug("send_command: buffer send " + arg.length + " bytes");
                 }
             } else {
-                if (exports.debug_mode) {
-                    console.log("send_command: string send " + Buffer.byteLength(arg) + " bytes: " + arg);
-                }
+                debug("send_command: string send " + Buffer.byteLength(arg) + " bytes: " + arg);
                 buffered_writes += !stream.write("$" + Buffer.byteLength(arg) + "\r\n" + arg + "\r\n");
             }
         }
     }
-    if (exports.debug_mode) {
-        console.log("send_command buffered_writes: " + buffered_writes, " should_buffer: " + this.should_buffer);
-    }
-    if (buffered_writes || this.command_queue.getLength() >= this.command_queue_high_water) {
+    debug("send_command buffered_writes: " + buffered_writes, " should_buffer: " + this.should_buffer);
+    if (buffered_writes || this.command_queue.length >= this.command_queue_high_water) {
         this.should_buffer = true;
     }
     return !this.should_buffer;
@@ -67891,8 +67796,8 @@ RedisClient.prototype.send_command = function (command, args, callback) {
 RedisClient.prototype.pub_sub_command = function (command_obj) {
     var i, key, command, args;
 
-    if (this.pub_sub_mode === false && exports.debug_mode) {
-        console.log("Entering pub/sub mode from " + command_obj.command);
+    if (this.pub_sub_mode === false) {
+        debug("Entering pub/sub mode from " + command_obj.command);
     }
     this.pub_sub_mode = true;
     command_obj.sub_command = true;
@@ -67920,15 +67825,20 @@ RedisClient.prototype.pub_sub_command = function (command_obj) {
     }
 };
 
-RedisClient.prototype.end = function () {
+RedisClient.prototype.end = function (flush) {
     this.stream._events = {};
 
-    //clear retry_timer
-    if(this.retry_timer){
+    // Clear retry_timer
+    if (this.retry_timer){
         clearTimeout(this.retry_timer);
-        this.retry_timer=null;
+        this.retry_timer = null;
     }
-    this.stream.on("error", function(){});
+    this.stream.on("error", function noop(){});
+
+    // Flush queue if wanted
+    if (flush) {
+        this.flush_and_error(new Error("The command can't be processed. The connection has already been closed."));
+    }
 
     this.connected = false;
     this.ready = false;
@@ -67938,326 +67848,294 @@ RedisClient.prototype.end = function () {
 
 function Multi(client, args) {
     this._client = client;
-    this.queue = [["MULTI"]];
+    this.queue = [["multi"]];
+    var command, tmp_args;
     if (Array.isArray(args)) {
-        this.queue = this.queue.concat(args);
+        while (tmp_args = args.shift()) {
+            command = tmp_args[0];
+            tmp_args = tmp_args.slice(1);
+            if (Array.isArray(command)) {
+                this[command[0]].apply(this, command.slice(1).concat(tmp_args));
+            } else {
+                this[command].apply(this, tmp_args);
+            }
+        }
     }
 }
-
-exports.Multi = Multi;
-
-// take 2 arrays and return the union of their elements
-function set_union(seta, setb) {
-    var obj = {};
-
-    seta.forEach(function (val) {
-        obj[val] = true;
-    });
-    setb.forEach(function (val) {
-        obj[val] = true;
-    });
-    return Object.keys(obj);
-}
-
-// This static list of commands is updated from time to time.  ./lib/commands.js can be updated with generate_commands.js
-commands = set_union(["get", "set", "setnx", "setex", "append", "strlen", "del", "exists", "setbit", "getbit", "setrange", "getrange", "substr",
-    "incr", "decr", "mget", "rpush", "lpush", "rpushx", "lpushx", "linsert", "rpop", "lpop", "brpop", "brpoplpush", "blpop", "llen", "lindex",
-    "lset", "lrange", "ltrim", "lrem", "rpoplpush", "sadd", "srem", "smove", "sismember", "scard", "spop", "srandmember", "sinter", "sinterstore",
-    "sunion", "sunionstore", "sdiff", "sdiffstore", "smembers", "zadd", "zincrby", "zrem", "zremrangebyscore", "zremrangebyrank", "zunionstore",
-    "zinterstore", "zrange", "zrangebyscore", "zrevrangebyscore", "zcount", "zrevrange", "zcard", "zscore", "zrank", "zrevrank", "hset", "hsetnx",
-    "hget", "hmset", "hmget", "hincrby", "hdel", "hlen", "hkeys", "hvals", "hgetall", "hexists", "incrby", "decrby", "getset", "mset", "msetnx",
-    "randomkey", "select", "move", "rename", "renamenx", "expire", "expireat", "keys", "dbsize", "auth", "ping", "echo", "save", "bgsave",
-    "bgrewriteaof", "shutdown", "lastsave", "type", "multi", "exec", "discard", "sync", "flushdb", "flushall", "sort", "info", "monitor", "ttl",
-    "persist", "slaveof", "debug", "config", "subscribe", "unsubscribe", "psubscribe", "punsubscribe", "publish", "watch", "unwatch", "cluster",
-    "restore", "migrate", "dump", "object", "client", "eval", "evalsha"], require("./lib/commands"));
 
 commands.forEach(function (fullCommand) {
     var command = fullCommand.split(' ')[0];
 
-    RedisClient.prototype[command] = function (args, callback) {
-        if (Array.isArray(args) && typeof callback === "function") {
-            return this.send_command(command, args, callback);
-        } else {
-            return this.send_command(command, to_array(arguments));
+    // Skip all full commands that have already been added instead of overwriting them over and over again
+    if (RedisClient.prototype[command]) {
+        return;
+    }
+
+    RedisClient.prototype[command] = function (key, arg, callback) {
+        if (Array.isArray(key)) {
+            return this.send_command(command, key, arg);
         }
+        if (Array.isArray(arg)) {
+            arg = [key].concat(arg);
+            return this.send_command(command, arg, callback);
+        }
+        // Speed up the common case
+        var len = arguments.length;
+        if (len === 2) {
+            return this.send_command(command, [key, arg]);
+        }
+        if (len === 3) {
+            return this.send_command(command, [key, arg, callback]);
+        }
+        return this.send_command(command, utils.to_array(arguments));
     };
     RedisClient.prototype[command.toUpperCase()] = RedisClient.prototype[command];
 
-    Multi.prototype[command] = function () {
-        this.queue.push([command].concat(to_array(arguments)));
+    Multi.prototype[command] = function (key, arg, callback) {
+        if (Array.isArray(key)) {
+            if (arg) {
+                key = key.concat([arg]);
+            }
+            this.queue.push([command].concat(key));
+        } else if (Array.isArray(arg)) {
+            if (callback) {
+                arg = arg.concat([callback]);
+            }
+            this.queue.push([command, key].concat(arg));
+        } else {
+            // Speed up the common case
+            var len = arguments.length;
+            if (len === 2) {
+                this.queue.push([command, key, arg]);
+            } else if (len === 3) {
+                this.queue.push([command, key, arg, callback]);
+            } else {
+                this.queue.push([command].concat(utils.to_array(arguments)));
+            }
+        }
         return this;
     };
     Multi.prototype[command.toUpperCase()] = Multi.prototype[command];
 });
 
 // store db in this.select_db to restore it on reconnect
-RedisClient.prototype.select = function (db, callback) {
+RedisClient.prototype.select = RedisClient.prototype.SELECT = function (db, callback) {
     var self = this;
 
     this.send_command('select', [db], function (err, res) {
         if (err === null) {
             self.selected_db = db;
         }
-        if (typeof(callback) === 'function') {
+        if (typeof callback === 'function') {
             callback(err, res);
         } else if (err) {
             self.emit('error', err);
         }
     });
 };
-RedisClient.prototype.SELECT = RedisClient.prototype.select;
 
-// Stash auth for connect and reconnect.  Send immediately if already connected.
-RedisClient.prototype.auth = function () {
-    var args = to_array(arguments);
-    this.auth_pass = args[0];
-    this.auth_callback = args[1];
-    if (exports.debug_mode) {
-        console.log("Saving auth as " + this.auth_pass);
+// Stash auth for connect and reconnect. Send immediately if already connected.
+RedisClient.prototype.auth = RedisClient.prototype.AUTH = function (pass, callback) {
+    if (typeof pass !== 'string') {
+        var err = new Error('The password has to be of type "string"');
+        err.command = 'AUTH';
+        if (callback) {
+            callback(err);
+        } else {
+            this.emit('error', err);
+        }
+        return;
     }
-
+    this.auth_pass = pass;
+    debug("Saving auth as " + this.auth_pass);
+    // Only run the callback once. So do not safe it if already connected
     if (this.connected) {
-        this.send_command("auth", args);
+        this.send_command("auth", [this.auth_pass], callback);
+    } else {
+        this.auth_callback = callback;
     }
 };
-RedisClient.prototype.AUTH = RedisClient.prototype.auth;
 
-RedisClient.prototype.hmget = function (arg1, arg2, arg3) {
-    if (Array.isArray(arg2) && typeof arg3 === "function") {
-        return this.send_command("hmget", [arg1].concat(arg2), arg3);
-    } else if (Array.isArray(arg1) && typeof arg2 === "function") {
-        return this.send_command("hmget", arg1, arg2);
-    } else {
-        return this.send_command("hmget", to_array(arguments));
+RedisClient.prototype.hmset = RedisClient.prototype.HMSET = function (key, args, callback) {
+    var field, tmp_args;
+    if (Array.isArray(key)) {
+        return this.send_command("hmset", key, args);
     }
-};
-RedisClient.prototype.HMGET = RedisClient.prototype.hmget;
-
-RedisClient.prototype.hmset = function (args, callback) {
-    var tmp_args, tmp_keys, i, il, key;
-
-    if (Array.isArray(args) && typeof callback === "function") {
-        return this.send_command("hmset", args, callback);
+    if (Array.isArray(args)) {
+        return this.send_command("hmset", [key].concat(args), callback);
     }
-
-    args = to_array(arguments);
-    if (typeof args[args.length - 1] === "function") {
-        callback = args[args.length - 1];
-        args.length -= 1;
-    } else {
-        callback = null;
-    }
-
-    if (args.length === 2 && (typeof args[0] === "string" || typeof args[0] === "number") && typeof args[1] === "object") {
+    if (typeof args === "object") {
         // User does: client.hmset(key, {key1: val1, key2: val2})
         // assuming key is a string, i.e. email address
 
         // if key is a number, i.e. timestamp, convert to string
-        if (typeof args[0] === "number") {
-            args[0] = args[0].toString();
+        // TODO: This seems random and no other command get's the key converted => either all or none should behave like this
+        if (typeof key !== "string") {
+            key = key.toString();
         }
-
-        tmp_args = [ args[0] ];
-        tmp_keys = Object.keys(args[1]);
-        for (i = 0, il = tmp_keys.length; i < il ; i++) {
-            key = tmp_keys[i];
-            tmp_args.push(key);
-            tmp_args.push(args[1][key]);
+        tmp_args = [key];
+        var fields = Object.keys(args);
+        while (field = fields.shift()) {
+            tmp_args.push(field, args[field]);
         }
-        args = tmp_args;
+        return this.send_command("hmset", tmp_args, callback);
     }
-
-    return this.send_command("hmset", args, callback);
+    return this.send_command("hmset", utils.to_array(arguments));
 };
-RedisClient.prototype.HMSET = RedisClient.prototype.hmset;
 
-Multi.prototype.hmset = function () {
-    var args = to_array(arguments), tmp_args;
-    if (args.length >= 2 && typeof args[0] === "string" && typeof args[1] === "object") {
-        tmp_args = [ "hmset", args[0] ];
-        Object.keys(args[1]).map(function (key) {
-            tmp_args.push(key);
-            tmp_args.push(args[1][key]);
-        });
-        if (args[2]) {
-            tmp_args.push(args[2]);
+Multi.prototype.hmset = Multi.prototype.HMSET = function (key, args, callback) {
+    var tmp_args, field;
+    if (Array.isArray(key)) {
+        if (args) {
+            key = key.concat([args]);
         }
-        args = tmp_args;
+        tmp_args = ['hmset'].concat(key);
+    } else if (Array.isArray(args)) {
+        if (callback) {
+            args = args.concat([callback]);
+        }
+        tmp_args = ['hmset', key].concat(args);
+    } else if (typeof args === "object") {
+        if (typeof key !== "string") {
+            key = key.toString();
+        }
+        tmp_args = ["hmset", key];
+        var fields = Object.keys(args);
+        while (field = fields.shift()) {
+            tmp_args.push(field);
+            tmp_args.push(args[field]);
+        }
+        if (callback) {
+            tmp_args.push(callback);
+        }
     } else {
-        args.unshift("hmset");
+        tmp_args = utils.to_array(arguments);
+        tmp_args.unshift("hmset");
     }
-
-    this.queue.push(args);
+    this.queue.push(tmp_args);
     return this;
 };
-Multi.prototype.HMSET = Multi.prototype.hmset;
 
-Multi.prototype.exec = function (callback) {
+Multi.prototype.send_command = function (command, args, index, cb) {
     var self = this;
-    var errors = [];
-    // drain queue, callback will catch "QUEUED" or error
-    // TODO - get rid of all of these anonymous functions which are elegant but slow
-    this.queue.forEach(function (args, index) {
-        var command = args[0], obj;
-        if (typeof args[args.length - 1] === "function") {
-            args = args.slice(1, -1);
-        } else {
-            args = args.slice(1);
-        }
-        if (args.length === 1 && Array.isArray(args[0])) {
-            args = args[0];
-        }
-        if (command.toLowerCase() === 'hmset' && typeof args[1] === 'object') {
-            obj = args.pop();
-            Object.keys(obj).forEach(function (key) {
-                args.push(key);
-                args.push(obj[key]);
-            });
-        }
-        this._client.send_command(command, args, function (err, reply) {
-            if (err) {
-                var cur = self.queue[index];
-                if (typeof cur[cur.length - 1] === "function") {
-                    cur[cur.length - 1](err);
-                } else {
-                    errors.push(new Error(err));
-                }
-            }
-        });
-    }, this);
-
-    // TODO - make this callback part of Multi.prototype instead of creating it each time
-    return this._client.send_command("EXEC", [], function (err, replies) {
+    this._client.send_command(command, args, function (err, reply) {
         if (err) {
-            if (callback) {
-                errors.push(new Error(err));
-                callback(errors);
-                return;
+            if (cb) {
+                cb(err);
+            }
+            err.position = index - 1;
+            self.errors.push(err);
+        }
+    });
+};
+
+Multi.prototype.exec = Multi.prototype.EXEC = function (callback) {
+    var self = this;
+    this.errors = [];
+    this.callback = callback;
+    this.wants_buffers = new Array(this.queue.length);
+    // drain queue, callback will catch "QUEUED" or error
+    for (var index = 0; index < this.queue.length; index++) {
+        var args = this.queue[index].slice(0);
+        var command = args.shift();
+        var cb;
+        if (typeof args[args.length - 1] === "function") {
+            cb = args.pop();
+        }
+        // Keep track of who wants buffer responses:
+        this.wants_buffers[index] = false;
+        for (var i = 0; i < args.length; i += 1) {
+            if (Buffer.isBuffer(args[i])) {
+                this.wants_buffers[index] = true;
+                break;
+            }
+        }
+        this.send_command(command, args, index, cb);
+    }
+
+    this._client.send_command('exec', [], function(err, replies) {
+        self.execute_callback(err, replies);
+    });
+};
+
+Multi.prototype.execute_callback = function (err, replies) {
+    var i, args;
+
+    if (err) {
+        if (err.code !== 'CONNECTION_BROKEN') {
+            err.errors = this.errors;
+            if (this.callback) {
+                this.callback(err);
             } else {
-                throw new Error(err);
+                // Exclude CONNECTION_BROKEN so that error won't be emitted twice
+                this._client.emit('error', err);
             }
         }
+        return;
+    }
 
-        var i, il, reply, args;
+    if (replies) {
+        for (i = 0; i < this.queue.length - 1; i += 1) {
+            args = this.queue[i + 1];
 
-        if (replies) {
-            for (i = 1, il = self.queue.length; i < il; i += 1) {
-                reply = replies[i - 1];
-                args = self.queue[i];
-
-                // TODO - confusing and error-prone that hgetall is special cased in two places
-                if (reply && args[0].toLowerCase() === "hgetall") {
-                    replies[i - 1] = reply = reply_to_object(reply);
+            // If we asked for strings, even in detect_buffers mode, then return strings:
+            if (replies[i] instanceof Error) {
+                var match = replies[i].message.match(utils.errCode);
+                // LUA script could return user errors that don't behave like all other errors!
+                if (match) {
+                    replies[i].code = match[1];
                 }
+                replies[i].command = args[0].toUpperCase();
+            } else if (replies[i]) {
+                if (this._client.options.detect_buffers && this.wants_buffers[i + 1] === false) {
+                    replies[i] = utils.reply_to_strings(replies[i]);
+                }
+                if (args[0] === "hgetall") {
+                    // TODO - confusing and error-prone that hgetall is special cased in two places
+                    replies[i] = utils.reply_to_object(replies[i]);
+                }
+            }
 
-                if (typeof args[args.length - 1] === "function") {
-                    args[args.length - 1](null, reply);
+            if (typeof args[args.length - 1] === "function") {
+                if (replies[i] instanceof Error) {
+                    args[args.length - 1](replies[i]);
+                } else {
+                    args[args.length - 1](null, replies[i]);
                 }
             }
         }
+    }
 
-        if (callback) {
-            callback(null, replies);
-        }
-    });
+    if (this.callback) {
+        this.callback(null, replies);
+    }
 };
-Multi.prototype.EXEC = Multi.prototype.exec;
 
-RedisClient.prototype.multi = function (args) {
+RedisClient.prototype.multi = RedisClient.prototype.MULTI = function (args) {
     return new Multi(this, args);
 };
-RedisClient.prototype.MULTI = function (args) {
-    return new Multi(this, args);
-};
-
-
-// stash original eval method
-var eval_orig = RedisClient.prototype.eval;
-// hook eval with an attempt to evalsha for cached scripts
-RedisClient.prototype.eval = RedisClient.prototype.EVAL = function () {
-    var self = this,
-        args = to_array(arguments),
-        callback;
-
-    if (typeof args[args.length - 1] === "function") {
-        callback = args.pop();
-    }
-
-    if (Array.isArray(args[0])) {
-        args = args[0];
-    }
-
-    // replace script source with sha value
-    var source = args[0];
-    args[0] = crypto.createHash("sha1").update(source).digest("hex");
-
-    self.evalsha(args, function (err, reply) {
-        if (err && /NOSCRIPT/.test(err.message)) {
-            args[0] = source;
-            eval_orig.call(self, args, callback);
-
-        } else if (callback) {
-            callback(err, reply);
-        }
-    });
-};
-
-
-exports.createClient = function(arg0, arg1, arg2){
-    if( arguments.length === 0 ){
-
-        // createClient()
-        return createClient_tcp(default_port, default_host, {});
-
-    } else if( typeof arg0 === 'number' ||
-        typeof arg0 === 'string' && arg0.match(/^\d+$/) ){
-
-        // createClient( 3000, host, options)
-        // createClient('3000', host, options)
-        return createClient_tcp(arg0, arg1, arg2);
-
-    } else if( typeof arg0 === 'string' ){
-
-        // createClient( '/tmp/redis.sock', options)
-        return createClient_unix(arg0,arg1);
-
-    } else if( arg0 !== null && typeof arg0 === 'object' ){
-
-        // createClient(options)
-        return createClient_tcp(default_port, default_host, arg0 );
-
-    } else if( arg0 === null && arg1 === null ){
-
-        // for backward compatibility
-        // createClient(null,null,options)
-        return createClient_tcp(default_port, default_host, arg2);
-
-    } else {
-        throw new Error('unknown type of connection in createClient()');
-    }
-}
 
 var createClient_unix = function(path, options){
     var cnxOptions = {
         path: path
     };
     var net_client = net.createConnection(cnxOptions);
-    var redis_client = new RedisClient(net_client, options || {});
+    var redis_client = new RedisClient(net_client, options);
 
     redis_client.connectionOption = cnxOptions;
     redis_client.address = path;
 
     return redis_client;
-}
+};
 
 var createClient_tcp = function (port_arg, host_arg, options) {
     var cnxOptions = {
         'port' : port_arg || default_port,
         'host' : host_arg || default_host,
-        'family' : (options && options.family === 'IPv6') ? 6 : 4
+        'family' : options && options.family === 'IPv6' ? 6 : 4
     };
     var net_client = net.createConnection(cnxOptions);
-    var redis_client = new RedisClient(net_client, options || {});
+    var redis_client = new RedisClient(net_client, options);
 
     redis_client.connectionOption = cnxOptions;
     redis_client.address = cnxOptions.host + ':' + cnxOptions.port;
@@ -68265,17 +68143,53 @@ var createClient_tcp = function (port_arg, host_arg, options) {
     return redis_client;
 };
 
-exports.print = function (err, reply) {
-    if (err) {
-        console.log("Error: " + err);
-    } else {
-        console.log("Reply: " + reply);
+exports.createClient = function(port_arg, host_arg, options) {
+    if (typeof port_arg === 'object' || port_arg === undefined) {
+        options = port_arg || options || {};
+        return createClient_tcp(+options.port, options.host, options);
     }
+    if (typeof port_arg === 'number' || typeof port_arg === 'string' && /^\d+$/.test(port_arg)) {
+        return createClient_tcp(port_arg, host_arg, options);
+    }
+    if (typeof port_arg === 'string') {
+        options = host_arg || {};
+
+        var parsed = URL.parse(port_arg, true, true);
+        if (parsed.hostname) {
+            if (parsed.auth) {
+                options.auth_pass = parsed.auth.split(':')[1];
+            }
+            return createClient_tcp(parsed.port, parsed.hostname, options);
+        }
+
+        return createClient_unix(port_arg, options);
+    }
+    throw new Error('Unknown type of connection in createClient()');
 };
 
+exports.print = utils.print;
+exports.Multi = Multi;
+
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"./lib/commands":541,"./lib/parser/hiredis":542,"./lib/parser/javascript":543,"./lib/queue":544,"./lib/to_array":545,"./lib/util":546,"_process":216,"buffer":17,"crypto":23,"events":209,"net":1}],541:[function(require,module,exports){
-// This file was generated by ./generate_commands.js on Wed Apr 23 2014 14:51:21 GMT-0700 (PDT)
+},{"./lib/command":493,"./lib/commands":494,"./lib/parsers/hiredis":495,"./lib/parsers/javascript":496,"./lib/queue":497,"./lib/utils":498,"_process":216,"buffer":17,"events":209,"net":1,"url":245,"util":247}],493:[function(require,module,exports){
+'use strict';
+
+// This Command constructor is ever so slightly faster than using an object literal, but more importantly, using
+// a named constructor helps it show up meaningfully in the V8 CPU profiler and in heap snapshots.
+function Command(command, args, sub_command, buffer_args, callback) {
+    this.command = command;
+    this.args = args;
+    this.sub_command = sub_command;
+    this.buffer_args = buffer_args;
+    this.callback = callback;
+}
+
+module.exports = Command;
+
+},{}],494:[function(require,module,exports){
+'use strict';
+
+// This file was generated by ./generate_commands.js on Thu Sep 03 2015 02:40:54 GMT+0200 (CEST)
 module.exports = [
     "append",
     "auth",
@@ -68292,6 +68206,28 @@ module.exports = [
     "client getname",
     "client pause",
     "client setname",
+    "cluster addslots",
+    "cluster count-failure-reports",
+    "cluster countkeysinslot",
+    "cluster delslots",
+    "cluster failover",
+    "cluster forget",
+    "cluster getkeysinslot",
+    "cluster info",
+    "cluster keyslot",
+    "cluster meet",
+    "cluster nodes",
+    "cluster replicate",
+    "cluster reset",
+    "cluster saveconfig",
+    "cluster set-config-epoch",
+    "cluster setslot",
+    "cluster slaves",
+    "cluster slots",
+    "command",
+    "command count",
+    "command getkeys",
+    "command info",
     "config get",
     "config rewrite",
     "config set",
@@ -68313,6 +68249,12 @@ module.exports = [
     "expireat",
     "flushall",
     "flushdb",
+    "geoadd",
+    "geohash",
+    "geopos",
+    "geodist",
+    "georadius",
+    "georadiusbymember",
     "get",
     "getbit",
     "getrange",
@@ -68329,6 +68271,7 @@ module.exports = [
     "hmset",
     "hset",
     "hsetnx",
+    "hstrlen",
     "hvals",
     "incr",
     "incrby",
@@ -68372,6 +68315,7 @@ module.exports = [
     "rename",
     "renamenx",
     "restore",
+    "role",
     "rpop",
     "rpoplpush",
     "rpush",
@@ -68413,6 +68357,7 @@ module.exports = [
     "type",
     "unsubscribe",
     "unwatch",
+    "wait",
     "watch",
     "zadd",
     "zcard",
@@ -68422,6 +68367,7 @@ module.exports = [
     "zlexcount",
     "zrange",
     "zrangebylex",
+    "zrevrangebylex",
     "zrangebyscore",
     "zrank",
     "zrem",
@@ -68439,28 +68385,20 @@ module.exports = [
     "zscan"
 ];
 
-},{}],542:[function(require,module,exports){
-var events = require("events"),
-    util = require("../util"),
-    hiredis = require("hiredis");
+},{}],495:[function(require,module,exports){
+'use strict';
 
-exports.debug_mode = false;
-exports.name = "hiredis";
+var hiredis = require("hiredis");
 
-function HiredisReplyParser(options) {
+function HiredisReplyParser(return_buffers) {
     this.name = exports.name;
-    this.options = options || {};
+    this.return_buffers = return_buffers;
     this.reset();
-    events.EventEmitter.call(this);
 }
-
-util.inherits(HiredisReplyParser, events.EventEmitter);
-
-exports.Parser = HiredisReplyParser;
 
 HiredisReplyParser.prototype.reset = function () {
     this.reader = new hiredis.Reader({
-        return_buffers: this.options.return_buffers || false
+        return_buffers: this.return_buffers || false
     });
 };
 
@@ -68471,7 +68409,8 @@ HiredisReplyParser.prototype.execute = function (data) {
         try {
             reply = this.reader.get();
         } catch (err) {
-            this.emit("error", err);
+            // Protocol errors land here
+            this.send_error(err);
             break;
         }
 
@@ -68480,57 +68419,41 @@ HiredisReplyParser.prototype.execute = function (data) {
         }
 
         if (reply && reply.constructor === Error) {
-            this.emit("reply error", reply);
+            this.send_error(reply);
         } else {
-            this.emit("reply", reply);
+            this.send_reply(reply);
         }
     }
 };
 
-},{"../util":546,"events":209,"hiredis":undefined}],543:[function(require,module,exports){
+exports.Parser = HiredisReplyParser;
+exports.name = "hiredis";
+
+},{"hiredis":undefined}],496:[function(require,module,exports){
 (function (Buffer){
-var events = require("events"),
-    util   = require("../util");
+'use strict';
+
+var util   = require("util");
 
 function Packet(type, size) {
     this.type = type;
     this.size = +size;
 }
 
-exports.name = "javascript";
-exports.debug_mode = false;
-
-function ReplyParser(options) {
+function ReplyParser(return_buffers) {
     this.name = exports.name;
-    this.options = options || { };
+    this.return_buffers = return_buffers;
 
-    this._buffer            = null;
+    this._buffer            = new Buffer(0);
     this._offset            = 0;
     this._encoding          = "utf-8";
-    this._debug_mode        = options.debug_mode;
-    this._reply_type        = null;
 }
-
-util.inherits(ReplyParser, events.EventEmitter);
-
-exports.Parser = ReplyParser;
 
 function IncompleteReadBuffer(message) {
     this.name = "IncompleteReadBuffer";
     this.message = message;
 }
 util.inherits(IncompleteReadBuffer, Error);
-
-// Buffer.toString() is quite slow for small strings
-function small_toString(buf, start, end) {
-    var tmp = "", i;
-
-    for (i = start; i < end; i++) {
-        tmp += String.fromCharCode(buf[i]);
-    }
-
-    return tmp;
-}
 
 ReplyParser.prototype._parseResult = function (type) {
     var start, end, offset, packetHeader;
@@ -68540,42 +68463,33 @@ ReplyParser.prototype._parseResult = function (type) {
         end = this._packetEndOffset() - 1;
         start = this._offset;
 
-        // include the delimiter
-        this._offset = end + 2;
-
         if (end > this._buffer.length) {
-            this._offset = start;
             throw new IncompleteReadBuffer("Wait for more data.");
         }
 
-        if (this.options.return_buffers) {
+        // include the delimiter
+        this._offset = end + 2;
+
+        if (type === 45) {
+            return new Error(this._buffer.toString(this._encoding, start, end));
+        } else if (this.return_buffers) {
             return this._buffer.slice(start, end);
-        } else {
-            if (end - start < 65536) { // completely arbitrary
-                return small_toString(this._buffer, start, end);
-            } else {
-                return this._buffer.toString(this._encoding, start, end);
-            }
         }
+        return this._buffer.toString(this._encoding, start, end);
     } else if (type === 58) { // :
         // up to the delimiter
         end = this._packetEndOffset() - 1;
         start = this._offset;
 
-        // include the delimiter
-        this._offset = end + 2;
-
         if (end > this._buffer.length) {
-            this._offset = start;
             throw new IncompleteReadBuffer("Wait for more data.");
         }
 
-        if (this.options.return_buffers) {
-            return this._buffer.slice(start, end);
-        }
+        // include the delimiter
+        this._offset = end + 2;
 
         // return the coerced numeric value
-        return +small_toString(this._buffer, start, end);
+        return +this._buffer.toString('ascii', start, end);
     } else if (type === 36) { // $
         // set a rewind point, as the packet could be larger than the
         // buffer in memory
@@ -68585,26 +68499,24 @@ ReplyParser.prototype._parseResult = function (type) {
 
         // packets with a size of -1 are considered null
         if (packetHeader.size === -1) {
-            return undefined;
+            return null;
         }
 
         end = this._offset + packetHeader.size;
         start = this._offset;
 
-        // set the offset to after the delimiter
-        this._offset = end + 2;
-
         if (end > this._buffer.length) {
-            this._offset = offset;
             throw new IncompleteReadBuffer("Wait for more data.");
         }
 
-        if (this.options.return_buffers) {
+        // set the offset to after the delimiter
+        this._offset = end + 2;
+
+        if (this.return_buffers) {
             return this._buffer.slice(start, end);
-        } else {
-            return this._buffer.toString(this._encoding, start, end);
         }
-    } else if (type === 42) { // *
+        return this._buffer.toString(this._encoding, start, end);
+    } else { // *
         offset = this._offset;
         packetHeader = new Packet(type, this.parseHeader());
 
@@ -68617,7 +68529,7 @@ ReplyParser.prototype._parseResult = function (type) {
             throw new IncompleteReadBuffer("Wait for more data.");
         }
 
-        var reply = [ ];
+        var reply = [];
         var ntype, i, res;
 
         offset = this._offset - 1;
@@ -68629,9 +68541,6 @@ ReplyParser.prototype._parseResult = function (type) {
                 throw new IncompleteReadBuffer("Wait for more data.");
             }
             res = this._parseResult(ntype);
-            if (res === undefined) {
-                res = null;
-            }
             reply.push(res);
         }
 
@@ -68646,53 +68555,31 @@ ReplyParser.prototype.execute = function (buffer) {
 
     while (true) {
         offset = this._offset;
-        try {
-            // at least 4 bytes: :1\r\n
-            if (this._bytesRemaining() < 4) {
-                break;
-            }
+        // at least 4 bytes: :1\r\n
+        if (this._bytesRemaining() < 4) {
+            break;
+        }
 
+        try {
             type = this._buffer[this._offset++];
 
-            if (type === 43) { // +
+            if (type === 43) { // Strings +
                 ret = this._parseResult(type);
-
-                if (ret === null) {
-                    break;
-                }
 
                 this.send_reply(ret);
-            } else  if (type === 45) { // -
+            } else  if (type === 45) { // Errors -
                 ret = this._parseResult(type);
-
-                if (ret === null) {
-                    break;
-                }
 
                 this.send_error(ret);
-            } else if (type === 58) { // :
+            } else if (type === 58) { // Integers :
                 ret = this._parseResult(type);
 
-                if (ret === null) {
-                    break;
-                }
-
                 this.send_reply(ret);
-            } else if (type === 36) { // $
+            } else if (type === 36) { // Bulk strings $
                 ret = this._parseResult(type);
 
-                if (ret === null) {
-                    break;
-                }
-
-                // check the state for what is the result of
-                // a -1, set it back up for a null reply
-                if (ret === undefined) {
-                    ret = null;
-                }
-
                 this.send_reply(ret);
-            } else if (type === 42) { // *
+            } else if (type === 42) { // Arrays *
                 // set a rewind point. if a failure occurs,
                 // wait for the next execute()/append() and try again
                 offset = this._offset - 1;
@@ -68700,13 +68587,15 @@ ReplyParser.prototype.execute = function (buffer) {
                 ret = this._parseResult(type);
 
                 this.send_reply(ret);
+            } else if (type === 10 || type === 13) {
+                break;
+            } else {
+                var err = new Error('Protocol error, got "' + String.fromCharCode(type) + '" as reply type byte');
+                this.send_error(err);
             }
         } catch (err) {
             // catch the error (not enough data), rewind, and wait
             // for the next packet to appear
-            if (! (err instanceof IncompleteReadBuffer)) {
-              throw err;
-            }
             this._offset = offset;
             break;
         }
@@ -68714,46 +68603,21 @@ ReplyParser.prototype.execute = function (buffer) {
 };
 
 ReplyParser.prototype.append = function (newBuffer) {
-    if (!newBuffer) {
-        return;
-    }
-
-    // first run
-    if (this._buffer === null) {
-        this._buffer = newBuffer;
-
-        return;
-    }
 
     // out of data
     if (this._offset >= this._buffer.length) {
         this._buffer = newBuffer;
         this._offset = 0;
-
         return;
     }
 
-    // very large packet
-    // check for concat, if we have it, use it
-    if (Buffer.concat !== undefined) {
-        this._buffer = Buffer.concat([this._buffer.slice(this._offset), newBuffer]);
-    } else {
-        var remaining = this._bytesRemaining(),
-            newLength = remaining + newBuffer.length,
-            tmpBuffer = new Buffer(newLength);
-
-        this._buffer.copy(tmpBuffer, 0, this._offset);
-        newBuffer.copy(tmpBuffer, remaining, 0);
-
-        this._buffer = tmpBuffer;
-    }
-
+    this._buffer = Buffer.concat([this._buffer.slice(this._offset), newBuffer]);
     this._offset = 0;
 };
 
 ReplyParser.prototype.parseHeader = function () {
     var end   = this._packetEndOffset(),
-        value = small_toString(this._buffer, this._offset, end - 1);
+        value = this._buffer.toString('ascii', this._offset, end - 1);
 
     this._offset = end + 1;
 
@@ -68766,6 +68630,7 @@ ReplyParser.prototype._packetEndOffset = function () {
     while (this._buffer[offset] !== 0x0d && this._buffer[offset + 1] !== 0x0a) {
         offset++;
 
+        /* istanbul ignore if: activate the js parser out of memory test to test this */
         if (offset >= this._buffer.length) {
             throw new IncompleteReadBuffer("didn't see LF after NL reading multi bulk count (" + offset + " => " + this._buffer.length + ", " + this._offset + ")");
         }
@@ -68779,20 +68644,13 @@ ReplyParser.prototype._bytesRemaining = function () {
     return (this._buffer.length - this._offset) < 0 ? 0 : (this._buffer.length - this._offset);
 };
 
-ReplyParser.prototype.parser_error = function (message) {
-    this.emit("error", message);
-};
-
-ReplyParser.prototype.send_error = function (reply) {
-    this.emit("reply error", reply);
-};
-
-ReplyParser.prototype.send_reply = function (reply) {
-    this.emit("reply", reply);
-};
+exports.Parser = ReplyParser;
+exports.name = "javascript";
 
 }).call(this,require("buffer").Buffer)
-},{"../util":546,"buffer":17,"events":209}],544:[function(require,module,exports){
+},{"buffer":17,"util":247}],497:[function(require,module,exports){
+'use strict';
+
 // Queue class adapted from Tim Caswell's pattern library
 // http://github.com/creationix/pattern/blob/master/lib/pattern/queue.js
 
@@ -68813,7 +68671,10 @@ Queue.prototype.shift = function () {
             return;
         }
     }
-    return this.head[this.offset++]; // sorry, JSLint
+    var item = this.head[this.offset];
+    this.head[this.offset] = null;
+    this.offset++;
+    return item;
 };
 
 Queue.prototype.push = function (item) {
@@ -68841,20 +68702,55 @@ Queue.prototype.forEach = function (fn, thisv) {
 Queue.prototype.getLength = function () {
     return this.head.length - this.offset + this.tail.length;
 };
-    
+
 Object.defineProperty(Queue.prototype, "length", {
     get: function () {
         return this.getLength();
     }
 });
 
+module.exports = Queue;
 
-if (typeof module !== "undefined" && module.exports) {
-    module.exports = Queue;
+},{}],498:[function(require,module,exports){
+(function (Buffer){
+'use strict';
+
+// hgetall converts its replies to an Object.  If the reply is empty, null is returned.
+function replyToObject(reply) {
+    var obj = {}, j, jl, key, val;
+
+    if (reply.length === 0 || !Array.isArray(reply)) {
+        return null;
+    }
+
+    for (j = 0, jl = reply.length; j < jl; j += 2) {
+        key = reply[j].toString('binary');
+        val = reply[j + 1];
+        obj[key] = val;
+    }
+
+    return obj;
 }
 
-},{}],545:[function(require,module,exports){
-function to_array(args) {
+function replyToStrings(reply) {
+    var i;
+
+    if (Buffer.isBuffer(reply)) {
+        return reply.toString();
+    }
+
+    if (Array.isArray(reply)) {
+        for (i = 0; i < reply.length; i++) {
+            // Recusivly call the function as slowlog returns deep nested replies
+            reply[i] = replyToStrings(reply[i]);
+        }
+        return reply;
+    }
+
+    return reply;
+}
+
+function toArray(args) {
     var len = args.length,
         arr = new Array(len), i;
 
@@ -68865,208 +68761,142 @@ function to_array(args) {
     return arr;
 }
 
-module.exports = to_array;
-
-},{}],546:[function(require,module,exports){
-// Support for very old versions of node where the module was called "sys".  At some point, we should abandon this.
-
-var util;
-
-try {
-    util = require("util");
-} catch (err) {
-    util = require("sys");
+function print (err, reply) {
+    if (err) {
+        console.log("Error: " + err);
+    } else {
+        console.log("Reply: " + reply);
+    }
 }
 
-module.exports = util;
+var redisErrCode = /^([A-Z]+)\s+(.+)$/;
 
-},{"sys":247,"util":247}],547:[function(require,module,exports){
-arguments[4][300][0].apply(exports,arguments)
-},{"./lib/cookies":549,"./lib/helpers":552,"./request":639,"dup":300,"extend":571}],548:[function(require,module,exports){
-arguments[4][301][0].apply(exports,arguments)
-},{"./helpers":552,"caseless":568,"dup":301,"node-uuid":623}],549:[function(require,module,exports){
-arguments[4][302][0].apply(exports,arguments)
-},{"dup":302,"tough-cookie":631}],550:[function(require,module,exports){
-arguments[4][303][0].apply(exports,arguments)
-},{"_process":216,"dup":303}],551:[function(require,module,exports){
-arguments[4][304][0].apply(exports,arguments)
-},{"dup":304,"fs":1,"har-validator":578,"querystring":220,"util":247}],552:[function(require,module,exports){
-arguments[4][305][0].apply(exports,arguments)
-},{"_process":216,"buffer":17,"crypto":23,"dup":305,"json-stringify-safe":619}],553:[function(require,module,exports){
-arguments[4][306][0].apply(exports,arguments)
-},{"buffer":17,"combined-stream":569,"dup":306,"isstream":618,"node-uuid":623}],554:[function(require,module,exports){
-arguments[4][307][0].apply(exports,arguments)
-},{"buffer":17,"caseless":568,"crypto":23,"dup":307,"node-uuid":623,"oauth-sign":624,"qs":625,"url":245}],555:[function(require,module,exports){
-arguments[4][308][0].apply(exports,arguments)
-},{"dup":308,"qs":625,"querystring":220}],556:[function(require,module,exports){
-arguments[4][309][0].apply(exports,arguments)
-},{"dup":309,"url":245}],557:[function(require,module,exports){
-arguments[4][310][0].apply(exports,arguments)
-},{"dup":310,"tunnel-agent":638,"url":245}],558:[function(require,module,exports){
-arguments[4][311][0].apply(exports,arguments)
-},{"crypto":23,"dup":311,"url":245}],559:[function(require,module,exports){
-arguments[4][312][0].apply(exports,arguments)
-},{"buffer":17,"dup":312,"readable-stream/duplex":560,"util":247}],560:[function(require,module,exports){
-arguments[4][221][0].apply(exports,arguments)
-},{"./lib/_stream_duplex.js":561,"dup":221}],561:[function(require,module,exports){
-arguments[4][314][0].apply(exports,arguments)
-},{"./_stream_readable":562,"./_stream_writable":563,"_process":216,"core-util-is":564,"dup":314,"inherits":565}],562:[function(require,module,exports){
-arguments[4][315][0].apply(exports,arguments)
-},{"_process":216,"buffer":17,"core-util-is":564,"dup":315,"events":209,"inherits":565,"isarray":566,"stream":234,"string_decoder/":567}],563:[function(require,module,exports){
-arguments[4][316][0].apply(exports,arguments)
-},{"./_stream_duplex":561,"_process":216,"buffer":17,"core-util-is":564,"dup":316,"inherits":565,"stream":234}],564:[function(require,module,exports){
-arguments[4][227][0].apply(exports,arguments)
-},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"dup":227}],565:[function(require,module,exports){
-arguments[4][211][0].apply(exports,arguments)
-},{"dup":211}],566:[function(require,module,exports){
-arguments[4][213][0].apply(exports,arguments)
-},{"dup":213}],567:[function(require,module,exports){
-arguments[4][244][0].apply(exports,arguments)
-},{"buffer":17,"dup":244}],568:[function(require,module,exports){
-arguments[4][321][0].apply(exports,arguments)
-},{"dup":321}],569:[function(require,module,exports){
-arguments[4][322][0].apply(exports,arguments)
-},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"delayed-stream":570,"dup":322,"stream":234,"util":247}],570:[function(require,module,exports){
-arguments[4][323][0].apply(exports,arguments)
-},{"dup":323,"stream":234,"util":247}],571:[function(require,module,exports){
-arguments[4][324][0].apply(exports,arguments)
-},{"dup":324}],572:[function(require,module,exports){
-arguments[4][325][0].apply(exports,arguments)
-},{"dup":325,"http":235,"https":210,"net":1,"tls":1,"util":247}],573:[function(require,module,exports){
-arguments[4][326][0].apply(exports,arguments)
-},{"_process":216,"async":489,"buffer":17,"combined-stream":569,"dup":326,"fs":1,"http":235,"https":210,"mime-types":574,"path":215,"url":245,"util":247}],574:[function(require,module,exports){
-arguments[4][328][0].apply(exports,arguments)
-},{"dup":328,"mime-db":576,"path":215}],575:[function(require,module,exports){
-arguments[4][329][0].apply(exports,arguments)
-},{"dup":329}],576:[function(require,module,exports){
-arguments[4][330][0].apply(exports,arguments)
-},{"./db.json":575,"dup":330}],577:[function(require,module,exports){
-arguments[4][331][0].apply(exports,arguments)
-},{"dup":331}],578:[function(require,module,exports){
-arguments[4][332][0].apply(exports,arguments)
-},{"./error":577,"./schemas":586,"dup":332,"is-my-json-valid":596}],579:[function(require,module,exports){
-arguments[4][333][0].apply(exports,arguments)
-},{"dup":333}],580:[function(require,module,exports){
-arguments[4][334][0].apply(exports,arguments)
-},{"dup":334}],581:[function(require,module,exports){
-arguments[4][335][0].apply(exports,arguments)
-},{"dup":335}],582:[function(require,module,exports){
-arguments[4][336][0].apply(exports,arguments)
-},{"dup":336}],583:[function(require,module,exports){
-arguments[4][337][0].apply(exports,arguments)
-},{"dup":337}],584:[function(require,module,exports){
-arguments[4][338][0].apply(exports,arguments)
-},{"dup":338}],585:[function(require,module,exports){
-arguments[4][339][0].apply(exports,arguments)
-},{"dup":339}],586:[function(require,module,exports){
-arguments[4][340][0].apply(exports,arguments)
-},{"./cache.json":579,"./cacheEntry.json":580,"./content.json":581,"./cookie.json":582,"./creator.json":583,"./entry.json":584,"./har.json":585,"./log.json":587,"./page.json":588,"./pageTimings.json":589,"./postData.json":590,"./record.json":591,"./request.json":592,"./response.json":593,"./timings.json":594,"dup":340}],587:[function(require,module,exports){
-arguments[4][341][0].apply(exports,arguments)
-},{"dup":341}],588:[function(require,module,exports){
-arguments[4][342][0].apply(exports,arguments)
-},{"dup":342}],589:[function(require,module,exports){
-arguments[4][343][0].apply(exports,arguments)
-},{"dup":343}],590:[function(require,module,exports){
-arguments[4][344][0].apply(exports,arguments)
-},{"dup":344}],591:[function(require,module,exports){
-arguments[4][345][0].apply(exports,arguments)
-},{"dup":345}],592:[function(require,module,exports){
-arguments[4][346][0].apply(exports,arguments)
-},{"dup":346}],593:[function(require,module,exports){
-arguments[4][347][0].apply(exports,arguments)
-},{"dup":347}],594:[function(require,module,exports){
-arguments[4][348][0].apply(exports,arguments)
-},{"dup":348}],595:[function(require,module,exports){
-arguments[4][349][0].apply(exports,arguments)
-},{"dup":349}],596:[function(require,module,exports){
-arguments[4][350][0].apply(exports,arguments)
-},{"./formats":595,"dup":350,"generate-function":597,"generate-object-property":598,"jsonpointer":600,"xtend":601}],597:[function(require,module,exports){
-arguments[4][351][0].apply(exports,arguments)
-},{"dup":351,"util":247}],598:[function(require,module,exports){
-arguments[4][352][0].apply(exports,arguments)
-},{"dup":352,"is-property":599}],599:[function(require,module,exports){
-arguments[4][353][0].apply(exports,arguments)
-},{"dup":353}],600:[function(require,module,exports){
-arguments[4][354][0].apply(exports,arguments)
-},{"console":21,"dup":354}],601:[function(require,module,exports){
-arguments[4][250][0].apply(exports,arguments)
-},{"dup":250}],602:[function(require,module,exports){
-arguments[4][356][0].apply(exports,arguments)
-},{"dup":356}],603:[function(require,module,exports){
-arguments[4][357][0].apply(exports,arguments)
-},{"./parser":604,"./signer":605,"./util":606,"./verify":607,"dup":357}],604:[function(require,module,exports){
-arguments[4][358][0].apply(exports,arguments)
-},{"assert-plus":614,"dup":358,"util":247}],605:[function(require,module,exports){
-arguments[4][359][0].apply(exports,arguments)
-},{"assert-plus":614,"crypto":23,"dup":359,"http":235,"util":247}],606:[function(require,module,exports){
-arguments[4][360][0].apply(exports,arguments)
-},{"asn1":613,"assert-plus":614,"buffer":17,"crypto":23,"ctype":617,"dup":360}],607:[function(require,module,exports){
-arguments[4][361][0].apply(exports,arguments)
-},{"assert-plus":614,"crypto":23,"dup":361}],608:[function(require,module,exports){
-arguments[4][362][0].apply(exports,arguments)
-},{"dup":362}],609:[function(require,module,exports){
-arguments[4][363][0].apply(exports,arguments)
-},{"./errors":608,"./reader":610,"./types":611,"./writer":612,"dup":363}],610:[function(require,module,exports){
-arguments[4][364][0].apply(exports,arguments)
-},{"./errors":608,"./types":611,"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"assert":2,"dup":364}],611:[function(require,module,exports){
-arguments[4][365][0].apply(exports,arguments)
-},{"dup":365}],612:[function(require,module,exports){
-arguments[4][366][0].apply(exports,arguments)
-},{"./errors":608,"./types":611,"assert":2,"buffer":17,"dup":366}],613:[function(require,module,exports){
-arguments[4][367][0].apply(exports,arguments)
-},{"./ber/index":609,"dup":367}],614:[function(require,module,exports){
-arguments[4][368][0].apply(exports,arguments)
-},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"_process":216,"assert":2,"dup":368,"stream":234,"util":247}],615:[function(require,module,exports){
-arguments[4][369][0].apply(exports,arguments)
-},{"assert":2,"dup":369}],616:[function(require,module,exports){
-arguments[4][370][0].apply(exports,arguments)
-},{"assert":2,"dup":370}],617:[function(require,module,exports){
-arguments[4][371][0].apply(exports,arguments)
-},{"./ctf.js":615,"./ctio.js":616,"assert":2,"buffer":17,"dup":371}],618:[function(require,module,exports){
-arguments[4][372][0].apply(exports,arguments)
-},{"dup":372,"stream":234}],619:[function(require,module,exports){
-arguments[4][373][0].apply(exports,arguments)
-},{"dup":373}],620:[function(require,module,exports){
-arguments[4][374][0].apply(exports,arguments)
-},{"dup":374,"mime-db":622}],621:[function(require,module,exports){
-arguments[4][375][0].apply(exports,arguments)
-},{"dup":375}],622:[function(require,module,exports){
-arguments[4][330][0].apply(exports,arguments)
-},{"./db.json":621,"dup":330}],623:[function(require,module,exports){
-arguments[4][377][0].apply(exports,arguments)
-},{"dup":377}],624:[function(require,module,exports){
-arguments[4][378][0].apply(exports,arguments)
-},{"crypto":23,"dup":378,"querystring":220}],625:[function(require,module,exports){
-arguments[4][379][0].apply(exports,arguments)
-},{"./lib/":626,"dup":379}],626:[function(require,module,exports){
-arguments[4][380][0].apply(exports,arguments)
-},{"./parse":627,"./stringify":628,"dup":380}],627:[function(require,module,exports){
-arguments[4][381][0].apply(exports,arguments)
-},{"./utils":629,"dup":381}],628:[function(require,module,exports){
-arguments[4][382][0].apply(exports,arguments)
-},{"./utils":629,"dup":382}],629:[function(require,module,exports){
-arguments[4][383][0].apply(exports,arguments)
-},{"dup":383}],630:[function(require,module,exports){
-arguments[4][384][0].apply(exports,arguments)
-},{"buffer":17,"dup":384,"stream":234,"string_decoder":244,"util":247}],631:[function(require,module,exports){
-arguments[4][385][0].apply(exports,arguments)
-},{"../package.json":637,"./memstore":632,"./pathMatch":633,"./permuteDomain":634,"./pubsuffix":635,"./store":636,"dup":385,"net":1,"punycode":217,"url":245}],632:[function(require,module,exports){
-arguments[4][386][0].apply(exports,arguments)
-},{"./pathMatch":633,"./permuteDomain":634,"./store":636,"dup":386,"util":247}],633:[function(require,module,exports){
-arguments[4][387][0].apply(exports,arguments)
-},{"dup":387}],634:[function(require,module,exports){
-arguments[4][388][0].apply(exports,arguments)
-},{"./pubsuffix":635,"dup":388}],635:[function(require,module,exports){
-arguments[4][389][0].apply(exports,arguments)
-},{"dup":389,"punycode":217}],636:[function(require,module,exports){
-arguments[4][390][0].apply(exports,arguments)
-},{"dup":390}],637:[function(require,module,exports){
-arguments[4][391][0].apply(exports,arguments)
-},{"dup":391}],638:[function(require,module,exports){
-arguments[4][392][0].apply(exports,arguments)
-},{"_process":216,"assert":2,"buffer":17,"dup":392,"events":209,"http":235,"https":210,"net":1,"tls":1,"util":247}],639:[function(require,module,exports){
-arguments[4][393][0].apply(exports,arguments)
-},{"./lib/auth":548,"./lib/cookies":549,"./lib/getProxyFromURI":550,"./lib/har":551,"./lib/helpers":552,"./lib/multipart":553,"./lib/oauth":554,"./lib/querystring":555,"./lib/redirect":556,"./lib/tunnel":557,"_process":216,"aws-sign2":558,"bl":559,"buffer":17,"caseless":568,"dup":393,"forever-agent":572,"form-data":573,"hawk":602,"http":235,"http-signature":603,"https":210,"mime-types":620,"stream":234,"stringstream":630,"url":245,"util":247,"zlib":16}],640:[function(require,module,exports){
+module.exports = {
+    reply_to_strings: replyToStrings,
+    reply_to_object: replyToObject,
+    to_array: toArray,
+    print: print,
+    errCode: redisErrCode
+};
+
+}).call(this,{"isBuffer":require("C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js")})
+},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212}],499:[function(require,module,exports){
+var util = require('util')
+var events = require('events')
+var redis = require('redis')
+var FileSystem
+
+if (typeof window === 'undefined') {
+  FileSystem = require('./filesystem.js')
+} else {
+  FileSystem = require('./localstorage.js')
+}
+
+var DataStorage = function (settings) {
+  var self = this
+
+  settings = settings || {}
+
+  self.redisPort = settings.redisPort || 6379
+  self.redisHost = settings.redisHost || '127.0.0.1'
+}
+
+util.inherits(DataStorage, events.EventEmitter)
+
+DataStorage.prototype.init = function (cb) {
+  var self = this
+
+  var once = true
+  var end = function () {
+    self.hasRedis = false
+    self.fs = new FileSystem()
+    self.emit('connect')
+    if (cb && once) {
+      once = false
+      return cb()
+    }
+  }
+  if (typeof window !== 'undefined') return end()
+  self.redisClient = redis.createClient(self.redisPort, self.redisHost)
+  self.redisClient.on('error', function (err) {
+    // if (err) console.error('Redis err: ' + err)
+    self.redisClient.end()
+    end()
+  })
+  self.redisClient.on('connect', function () {
+    // console.log('redis connected!')
+    self.hasRedis = true
+    self.emit('connect')
+    if (cb && once) {
+      once = false
+      return cb()
+    }
+  })
+}
+
+DataStorage.prototype.set = function (key, value) {
+  var self = this
+
+  if (self.hasRedis) {
+    self.redisClient.set(key, value)
+  } else {
+    if (self.fs) {
+      self.fs.set(key, value)
+    }
+  }
+}
+
+DataStorage.prototype.get = function (key, callback) {
+  var self = this
+
+  if (self.hasRedis) {
+    return self.redisClient.get(key, callback)
+  } else if (self.fs) {
+    return callback(null, self.fs.get(key))
+  } else {
+    return callback('Key ' + key + ' not found.')
+  }
+}
+
+DataStorage.prototype.hset = function (hash, key, value) {
+  var self = this
+
+  if (self.hasRedis) {
+    self.redisClient.hset(hash, key, value)
+  } else {
+    if (self.fs) {
+      self.fs.hset(hash, key, value)
+    }
+  }
+}
+
+DataStorage.prototype.hget = function (hash, key, callback) {
+  var self = this
+
+  if (self.hasRedis) {
+    return self.redisClient.hget(hash, key, callback)
+  } else if (self.fs) {
+    return callback(null, self.fs.hget(hash, key))
+  } else {
+    return callback('Key ' + key + ' not found.')
+  }
+}
+
+DataStorage.prototype.hkeys = function (hash, callback) {
+  var self = this
+
+  if (self.hasRedis) {
+    return self.redisClient.hkeys(hash, callback)
+  } else if (self.fs) {
+    return callback(null, self.fs.hkeys(hash))
+  } else {
+    return callback('Keys not found.')
+  }
+}
+
+module.exports = DataStorage
+
+},{"./filesystem.js":500,"./localstorage.js":501,"events":209,"redis":492,"util":247}],500:[function(require,module,exports){
 var path = require('path-extra')
 var mkpath = require('mkpath')
 var jf = require('jsonfile')
@@ -69075,7 +68905,7 @@ module.exports = FileSystem
 
 function FileSystem (callback) {
   var self = this
-  self.appPath = path.datadir('hdwallet')
+  self.appPath = path.datadir('DataStorage')
   self.configFile = path.join(self.appPath, 'properties.conf')
 
   if (callback) {
@@ -69154,7 +68984,349 @@ var safePathWrite = function (file, content, callback) {
   }
 }
 
-},{"jsonfile":537,"mkpath":538,"path-extra":539}],641:[function(require,module,exports){
+},{"jsonfile":489,"mkpath":490,"path-extra":491}],501:[function(require,module,exports){
+module.exports = LocalStorage
+
+function LocalStorage () {}
+
+LocalStorage.prototype.get = function (key) {
+  var value = localStorage.getItem(key)
+  try {
+    value = JSON.parse(value)
+  } catch (e) {
+    // not an object...
+  }
+  return value
+}
+
+LocalStorage.prototype.set = function (key, value) {
+  if (typeof value === 'object') {
+    value = JSON.stringify(value)
+  }
+  return localStorage.setItem(key, value)
+}
+
+LocalStorage.prototype.hget = function (key, hash) {
+  if (key && hash) {
+    var hvalue = this.get(key)
+    if (hvalue && typeof hvalue === 'object') {
+      return hvalue[hash]
+    }
+  }
+  return null
+}
+
+LocalStorage.prototype.hset = function (key, hash, value, callback) {
+  if (!callback) callback = function () { }
+  if (!key) return callback('No key.')
+  if (!hash) return callback('No hash.')
+  value = value || null
+  var hvalue = this.get(key)
+  if (!hvalue) {
+    // this.set(key, {})
+    hvalue = {}
+  }
+  if (typeof hvalue !== 'object') return callback('Key ' + key + ' is set but not an object.')
+  hvalue[hash] = value
+  this.set(key, hvalue)
+  callback()
+}
+
+LocalStorage.prototype.hkeys = function (key) {
+  if (key) {
+    var hvalue = this.get(key)
+    if (hvalue && typeof hvalue === 'object') {
+      return Object.keys(hvalue)
+    } else {
+      return null
+    }
+  }
+  return []
+}
+
+},{}],502:[function(require,module,exports){
+arguments[4][327][0].apply(exports,arguments)
+},{"_process":216,"dup":327}],503:[function(require,module,exports){
+arguments[4][253][0].apply(exports,arguments)
+},{"../package.json":506,"dup":253}],504:[function(require,module,exports){
+arguments[4][254][0].apply(exports,arguments)
+},{"./bigi":503,"assert":2,"buffer":17,"dup":254}],505:[function(require,module,exports){
+arguments[4][255][0].apply(exports,arguments)
+},{"./bigi":503,"./convert":504,"dup":255}],506:[function(require,module,exports){
+arguments[4][256][0].apply(exports,arguments)
+},{"dup":256}],507:[function(require,module,exports){
+arguments[4][257][0].apply(exports,arguments)
+},{"bs58":508,"buffer":17,"create-hash":509,"dup":257}],508:[function(require,module,exports){
+arguments[4][258][0].apply(exports,arguments)
+},{"dup":258}],509:[function(require,module,exports){
+arguments[4][259][0].apply(exports,arguments)
+},{"./md5":511,"buffer":17,"dup":259,"inherits":512,"ripemd160":513,"sha.js":515,"stream":234}],510:[function(require,module,exports){
+arguments[4][142][0].apply(exports,arguments)
+},{"buffer":17,"dup":142}],511:[function(require,module,exports){
+arguments[4][143][0].apply(exports,arguments)
+},{"./helpers":510,"dup":143}],512:[function(require,module,exports){
+arguments[4][211][0].apply(exports,arguments)
+},{"dup":211}],513:[function(require,module,exports){
+arguments[4][145][0].apply(exports,arguments)
+},{"buffer":17,"dup":145}],514:[function(require,module,exports){
+arguments[4][146][0].apply(exports,arguments)
+},{"buffer":17,"dup":146}],515:[function(require,module,exports){
+arguments[4][147][0].apply(exports,arguments)
+},{"./sha":516,"./sha1":517,"./sha224":518,"./sha256":519,"./sha384":520,"./sha512":521,"dup":147}],516:[function(require,module,exports){
+arguments[4][266][0].apply(exports,arguments)
+},{"./hash":514,"buffer":17,"dup":266,"inherits":512}],517:[function(require,module,exports){
+arguments[4][267][0].apply(exports,arguments)
+},{"./hash":514,"buffer":17,"dup":267,"inherits":512}],518:[function(require,module,exports){
+arguments[4][150][0].apply(exports,arguments)
+},{"./hash":514,"./sha256":519,"buffer":17,"dup":150,"inherits":512}],519:[function(require,module,exports){
+arguments[4][269][0].apply(exports,arguments)
+},{"./hash":514,"buffer":17,"dup":269,"inherits":512}],520:[function(require,module,exports){
+arguments[4][152][0].apply(exports,arguments)
+},{"./hash":514,"./sha512":521,"buffer":17,"dup":152,"inherits":512}],521:[function(require,module,exports){
+arguments[4][271][0].apply(exports,arguments)
+},{"./hash":514,"buffer":17,"dup":271,"inherits":512}],522:[function(require,module,exports){
+arguments[4][272][0].apply(exports,arguments)
+},{"buffer":17,"create-hash/browser":509,"dup":272,"inherits":523,"stream":234}],523:[function(require,module,exports){
+arguments[4][211][0].apply(exports,arguments)
+},{"dup":211}],524:[function(require,module,exports){
+arguments[4][274][0].apply(exports,arguments)
+},{"./point":528,"assert":2,"bigi":505,"dup":274}],525:[function(require,module,exports){
+arguments[4][275][0].apply(exports,arguments)
+},{"dup":275}],526:[function(require,module,exports){
+arguments[4][276][0].apply(exports,arguments)
+},{"./curve":524,"./names":527,"./point":528,"dup":276}],527:[function(require,module,exports){
+arguments[4][277][0].apply(exports,arguments)
+},{"./curve":524,"./curves":525,"bigi":505,"dup":277}],528:[function(require,module,exports){
+arguments[4][278][0].apply(exports,arguments)
+},{"assert":2,"bigi":505,"buffer":17,"dup":278}],529:[function(require,module,exports){
+arguments[4][208][0].apply(exports,arguments)
+},{"_process":216,"buffer":17,"dup":208}],530:[function(require,module,exports){
+arguments[4][280][0].apply(exports,arguments)
+},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"dup":280}],531:[function(require,module,exports){
+arguments[4][281][0].apply(exports,arguments)
+},{"./networks":543,"./scripts":546,"assert":2,"bs58check":507,"buffer":17,"dup":281,"typeforce":530}],532:[function(require,module,exports){
+arguments[4][282][0].apply(exports,arguments)
+},{"bs58check":507,"dup":282}],533:[function(require,module,exports){
+arguments[4][283][0].apply(exports,arguments)
+},{"./bufferutils":534,"./crypto":535,"./transaction":547,"assert":2,"buffer":17,"dup":283}],534:[function(require,module,exports){
+arguments[4][284][0].apply(exports,arguments)
+},{"./opcodes":544,"assert":2,"buffer":17,"dup":284}],535:[function(require,module,exports){
+arguments[4][285][0].apply(exports,arguments)
+},{"create-hash":509,"create-hmac":522,"dup":285}],536:[function(require,module,exports){
+arguments[4][286][0].apply(exports,arguments)
+},{"./ecsignature":539,"assert":2,"bigi":505,"buffer":17,"create-hmac":522,"dup":286,"typeforce":530}],537:[function(require,module,exports){
+arguments[4][287][0].apply(exports,arguments)
+},{"./ecdsa":536,"./ecpubkey":538,"./networks":543,"assert":2,"bigi":505,"bs58check":507,"buffer":17,"dup":287,"ecurve":526,"randombytes":529,"typeforce":530}],538:[function(require,module,exports){
+arguments[4][288][0].apply(exports,arguments)
+},{"./address":531,"./crypto":535,"./ecdsa":536,"./networks":543,"buffer":17,"dup":288,"ecurve":526,"typeforce":530}],539:[function(require,module,exports){
+arguments[4][289][0].apply(exports,arguments)
+},{"assert":2,"bigi":505,"buffer":17,"dup":289,"typeforce":530}],540:[function(require,module,exports){
+arguments[4][290][0].apply(exports,arguments)
+},{"./crypto":535,"./eckey":537,"./ecpubkey":538,"./networks":543,"assert":2,"bigi":505,"bs58check":507,"buffer":17,"create-hmac":522,"dup":290,"ecurve":526,"typeforce":530}],541:[function(require,module,exports){
+arguments[4][291][0].apply(exports,arguments)
+},{"./address":531,"./base58check":532,"./block":533,"./bufferutils":534,"./crypto":535,"./ecdsa":536,"./eckey":537,"./ecpubkey":538,"./ecsignature":539,"./hdnode":540,"./message":542,"./networks":543,"./opcodes":544,"./script":545,"./scripts":546,"./transaction":547,"./transaction_builder":548,"./wallet":549,"dup":291}],542:[function(require,module,exports){
+arguments[4][292][0].apply(exports,arguments)
+},{"./bufferutils":534,"./crypto":535,"./ecdsa":536,"./ecpubkey":538,"./ecsignature":539,"./networks":543,"bigi":505,"buffer":17,"dup":292,"ecurve":526}],543:[function(require,module,exports){
+arguments[4][293][0].apply(exports,arguments)
+},{"dup":293}],544:[function(require,module,exports){
+arguments[4][294][0].apply(exports,arguments)
+},{"dup":294}],545:[function(require,module,exports){
+arguments[4][295][0].apply(exports,arguments)
+},{"./bufferutils":534,"./crypto":535,"./opcodes":544,"assert":2,"buffer":17,"dup":295,"typeforce":530}],546:[function(require,module,exports){
+arguments[4][296][0].apply(exports,arguments)
+},{"./ecsignature":539,"./opcodes":544,"./script":545,"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"assert":2,"dup":296,"ecurve":526,"typeforce":530}],547:[function(require,module,exports){
+arguments[4][297][0].apply(exports,arguments)
+},{"./address":531,"./bufferutils":534,"./crypto":535,"./ecsignature":539,"./opcodes":544,"./script":545,"./scripts":546,"assert":2,"buffer":17,"dup":297,"typeforce":530}],548:[function(require,module,exports){
+arguments[4][298][0].apply(exports,arguments)
+},{"./ecpubkey":538,"./ecsignature":539,"./opcodes":544,"./script":545,"./scripts":546,"./transaction":547,"assert":2,"buffer":17,"dup":298}],549:[function(require,module,exports){
+arguments[4][299][0].apply(exports,arguments)
+},{"./address":531,"./bufferutils":534,"./hdnode":540,"./networks":543,"./script":545,"./transaction_builder":548,"assert":2,"buffer":17,"dup":299,"randombytes":529,"typeforce":530}],550:[function(require,module,exports){
+arguments[4][300][0].apply(exports,arguments)
+},{"./lib/cookies":552,"./lib/helpers":555,"./request":642,"dup":300,"extend":574}],551:[function(require,module,exports){
+arguments[4][301][0].apply(exports,arguments)
+},{"./helpers":555,"caseless":571,"dup":301,"node-uuid":626}],552:[function(require,module,exports){
+arguments[4][302][0].apply(exports,arguments)
+},{"dup":302,"tough-cookie":634}],553:[function(require,module,exports){
+arguments[4][303][0].apply(exports,arguments)
+},{"_process":216,"dup":303}],554:[function(require,module,exports){
+arguments[4][304][0].apply(exports,arguments)
+},{"dup":304,"fs":1,"har-validator":581,"querystring":220,"util":247}],555:[function(require,module,exports){
+arguments[4][305][0].apply(exports,arguments)
+},{"_process":216,"buffer":17,"crypto":23,"dup":305,"json-stringify-safe":622}],556:[function(require,module,exports){
+arguments[4][306][0].apply(exports,arguments)
+},{"buffer":17,"combined-stream":572,"dup":306,"isstream":621,"node-uuid":626}],557:[function(require,module,exports){
+arguments[4][307][0].apply(exports,arguments)
+},{"buffer":17,"caseless":571,"crypto":23,"dup":307,"node-uuid":626,"oauth-sign":627,"qs":628,"url":245}],558:[function(require,module,exports){
+arguments[4][308][0].apply(exports,arguments)
+},{"dup":308,"qs":628,"querystring":220}],559:[function(require,module,exports){
+arguments[4][309][0].apply(exports,arguments)
+},{"dup":309,"url":245}],560:[function(require,module,exports){
+arguments[4][310][0].apply(exports,arguments)
+},{"dup":310,"tunnel-agent":641,"url":245}],561:[function(require,module,exports){
+arguments[4][311][0].apply(exports,arguments)
+},{"crypto":23,"dup":311,"url":245}],562:[function(require,module,exports){
+arguments[4][312][0].apply(exports,arguments)
+},{"buffer":17,"dup":312,"readable-stream/duplex":563,"util":247}],563:[function(require,module,exports){
+arguments[4][221][0].apply(exports,arguments)
+},{"./lib/_stream_duplex.js":564,"dup":221}],564:[function(require,module,exports){
+arguments[4][314][0].apply(exports,arguments)
+},{"./_stream_readable":565,"./_stream_writable":566,"_process":216,"core-util-is":567,"dup":314,"inherits":568}],565:[function(require,module,exports){
+arguments[4][315][0].apply(exports,arguments)
+},{"_process":216,"buffer":17,"core-util-is":567,"dup":315,"events":209,"inherits":568,"isarray":569,"stream":234,"string_decoder/":570}],566:[function(require,module,exports){
+arguments[4][316][0].apply(exports,arguments)
+},{"./_stream_duplex":564,"_process":216,"buffer":17,"core-util-is":567,"dup":316,"inherits":568,"stream":234}],567:[function(require,module,exports){
+arguments[4][227][0].apply(exports,arguments)
+},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"dup":227}],568:[function(require,module,exports){
+arguments[4][211][0].apply(exports,arguments)
+},{"dup":211}],569:[function(require,module,exports){
+arguments[4][213][0].apply(exports,arguments)
+},{"dup":213}],570:[function(require,module,exports){
+arguments[4][244][0].apply(exports,arguments)
+},{"buffer":17,"dup":244}],571:[function(require,module,exports){
+arguments[4][321][0].apply(exports,arguments)
+},{"dup":321}],572:[function(require,module,exports){
+arguments[4][322][0].apply(exports,arguments)
+},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"delayed-stream":573,"dup":322,"stream":234,"util":247}],573:[function(require,module,exports){
+arguments[4][323][0].apply(exports,arguments)
+},{"dup":323,"stream":234,"util":247}],574:[function(require,module,exports){
+arguments[4][324][0].apply(exports,arguments)
+},{"dup":324}],575:[function(require,module,exports){
+arguments[4][325][0].apply(exports,arguments)
+},{"dup":325,"http":235,"https":210,"net":1,"tls":1,"util":247}],576:[function(require,module,exports){
+arguments[4][326][0].apply(exports,arguments)
+},{"_process":216,"async":502,"buffer":17,"combined-stream":572,"dup":326,"fs":1,"http":235,"https":210,"mime-types":577,"path":215,"url":245,"util":247}],577:[function(require,module,exports){
+arguments[4][328][0].apply(exports,arguments)
+},{"dup":328,"mime-db":579,"path":215}],578:[function(require,module,exports){
+arguments[4][329][0].apply(exports,arguments)
+},{"dup":329}],579:[function(require,module,exports){
+arguments[4][330][0].apply(exports,arguments)
+},{"./db.json":578,"dup":330}],580:[function(require,module,exports){
+arguments[4][331][0].apply(exports,arguments)
+},{"dup":331}],581:[function(require,module,exports){
+arguments[4][332][0].apply(exports,arguments)
+},{"./error":580,"./schemas":589,"dup":332,"is-my-json-valid":599}],582:[function(require,module,exports){
+arguments[4][333][0].apply(exports,arguments)
+},{"dup":333}],583:[function(require,module,exports){
+arguments[4][334][0].apply(exports,arguments)
+},{"dup":334}],584:[function(require,module,exports){
+arguments[4][335][0].apply(exports,arguments)
+},{"dup":335}],585:[function(require,module,exports){
+arguments[4][336][0].apply(exports,arguments)
+},{"dup":336}],586:[function(require,module,exports){
+arguments[4][337][0].apply(exports,arguments)
+},{"dup":337}],587:[function(require,module,exports){
+arguments[4][338][0].apply(exports,arguments)
+},{"dup":338}],588:[function(require,module,exports){
+arguments[4][339][0].apply(exports,arguments)
+},{"dup":339}],589:[function(require,module,exports){
+arguments[4][340][0].apply(exports,arguments)
+},{"./cache.json":582,"./cacheEntry.json":583,"./content.json":584,"./cookie.json":585,"./creator.json":586,"./entry.json":587,"./har.json":588,"./log.json":590,"./page.json":591,"./pageTimings.json":592,"./postData.json":593,"./record.json":594,"./request.json":595,"./response.json":596,"./timings.json":597,"dup":340}],590:[function(require,module,exports){
+arguments[4][341][0].apply(exports,arguments)
+},{"dup":341}],591:[function(require,module,exports){
+arguments[4][342][0].apply(exports,arguments)
+},{"dup":342}],592:[function(require,module,exports){
+arguments[4][343][0].apply(exports,arguments)
+},{"dup":343}],593:[function(require,module,exports){
+arguments[4][344][0].apply(exports,arguments)
+},{"dup":344}],594:[function(require,module,exports){
+arguments[4][345][0].apply(exports,arguments)
+},{"dup":345}],595:[function(require,module,exports){
+arguments[4][346][0].apply(exports,arguments)
+},{"dup":346}],596:[function(require,module,exports){
+arguments[4][347][0].apply(exports,arguments)
+},{"dup":347}],597:[function(require,module,exports){
+arguments[4][348][0].apply(exports,arguments)
+},{"dup":348}],598:[function(require,module,exports){
+arguments[4][349][0].apply(exports,arguments)
+},{"dup":349}],599:[function(require,module,exports){
+arguments[4][350][0].apply(exports,arguments)
+},{"./formats":598,"dup":350,"generate-function":600,"generate-object-property":601,"jsonpointer":603,"xtend":604}],600:[function(require,module,exports){
+arguments[4][351][0].apply(exports,arguments)
+},{"dup":351,"util":247}],601:[function(require,module,exports){
+arguments[4][352][0].apply(exports,arguments)
+},{"dup":352,"is-property":602}],602:[function(require,module,exports){
+arguments[4][353][0].apply(exports,arguments)
+},{"dup":353}],603:[function(require,module,exports){
+arguments[4][354][0].apply(exports,arguments)
+},{"console":21,"dup":354}],604:[function(require,module,exports){
+arguments[4][250][0].apply(exports,arguments)
+},{"dup":250}],605:[function(require,module,exports){
+arguments[4][356][0].apply(exports,arguments)
+},{"dup":356}],606:[function(require,module,exports){
+arguments[4][357][0].apply(exports,arguments)
+},{"./parser":607,"./signer":608,"./util":609,"./verify":610,"dup":357}],607:[function(require,module,exports){
+arguments[4][358][0].apply(exports,arguments)
+},{"assert-plus":617,"dup":358,"util":247}],608:[function(require,module,exports){
+arguments[4][359][0].apply(exports,arguments)
+},{"assert-plus":617,"crypto":23,"dup":359,"http":235,"util":247}],609:[function(require,module,exports){
+arguments[4][360][0].apply(exports,arguments)
+},{"asn1":616,"assert-plus":617,"buffer":17,"crypto":23,"ctype":620,"dup":360}],610:[function(require,module,exports){
+arguments[4][361][0].apply(exports,arguments)
+},{"assert-plus":617,"crypto":23,"dup":361}],611:[function(require,module,exports){
+arguments[4][362][0].apply(exports,arguments)
+},{"dup":362}],612:[function(require,module,exports){
+arguments[4][363][0].apply(exports,arguments)
+},{"./errors":611,"./reader":613,"./types":614,"./writer":615,"dup":363}],613:[function(require,module,exports){
+arguments[4][364][0].apply(exports,arguments)
+},{"./errors":611,"./types":614,"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"assert":2,"dup":364}],614:[function(require,module,exports){
+arguments[4][365][0].apply(exports,arguments)
+},{"dup":365}],615:[function(require,module,exports){
+arguments[4][366][0].apply(exports,arguments)
+},{"./errors":611,"./types":614,"assert":2,"buffer":17,"dup":366}],616:[function(require,module,exports){
+arguments[4][367][0].apply(exports,arguments)
+},{"./ber/index":612,"dup":367}],617:[function(require,module,exports){
+arguments[4][368][0].apply(exports,arguments)
+},{"C:\\Users\\Tal\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\insert-module-globals\\node_modules\\is-buffer\\index.js":212,"_process":216,"assert":2,"dup":368,"stream":234,"util":247}],618:[function(require,module,exports){
+arguments[4][369][0].apply(exports,arguments)
+},{"assert":2,"dup":369}],619:[function(require,module,exports){
+arguments[4][370][0].apply(exports,arguments)
+},{"assert":2,"dup":370}],620:[function(require,module,exports){
+arguments[4][371][0].apply(exports,arguments)
+},{"./ctf.js":618,"./ctio.js":619,"assert":2,"buffer":17,"dup":371}],621:[function(require,module,exports){
+arguments[4][372][0].apply(exports,arguments)
+},{"dup":372,"stream":234}],622:[function(require,module,exports){
+arguments[4][373][0].apply(exports,arguments)
+},{"dup":373}],623:[function(require,module,exports){
+arguments[4][374][0].apply(exports,arguments)
+},{"dup":374,"mime-db":625}],624:[function(require,module,exports){
+arguments[4][375][0].apply(exports,arguments)
+},{"dup":375}],625:[function(require,module,exports){
+arguments[4][330][0].apply(exports,arguments)
+},{"./db.json":624,"dup":330}],626:[function(require,module,exports){
+arguments[4][377][0].apply(exports,arguments)
+},{"dup":377}],627:[function(require,module,exports){
+arguments[4][378][0].apply(exports,arguments)
+},{"crypto":23,"dup":378,"querystring":220}],628:[function(require,module,exports){
+arguments[4][379][0].apply(exports,arguments)
+},{"./lib/":629,"dup":379}],629:[function(require,module,exports){
+arguments[4][380][0].apply(exports,arguments)
+},{"./parse":630,"./stringify":631,"dup":380}],630:[function(require,module,exports){
+arguments[4][381][0].apply(exports,arguments)
+},{"./utils":632,"dup":381}],631:[function(require,module,exports){
+arguments[4][382][0].apply(exports,arguments)
+},{"./utils":632,"dup":382}],632:[function(require,module,exports){
+arguments[4][383][0].apply(exports,arguments)
+},{"dup":383}],633:[function(require,module,exports){
+arguments[4][384][0].apply(exports,arguments)
+},{"buffer":17,"dup":384,"stream":234,"string_decoder":244,"util":247}],634:[function(require,module,exports){
+arguments[4][385][0].apply(exports,arguments)
+},{"../package.json":640,"./memstore":635,"./pathMatch":636,"./permuteDomain":637,"./pubsuffix":638,"./store":639,"dup":385,"net":1,"punycode":217,"url":245}],635:[function(require,module,exports){
+arguments[4][386][0].apply(exports,arguments)
+},{"./pathMatch":636,"./permuteDomain":637,"./store":639,"dup":386,"util":247}],636:[function(require,module,exports){
+arguments[4][387][0].apply(exports,arguments)
+},{"dup":387}],637:[function(require,module,exports){
+arguments[4][388][0].apply(exports,arguments)
+},{"./pubsuffix":638,"dup":388}],638:[function(require,module,exports){
+arguments[4][389][0].apply(exports,arguments)
+},{"dup":389,"punycode":217}],639:[function(require,module,exports){
+arguments[4][390][0].apply(exports,arguments)
+},{"dup":390}],640:[function(require,module,exports){
+arguments[4][391][0].apply(exports,arguments)
+},{"dup":391}],641:[function(require,module,exports){
+arguments[4][392][0].apply(exports,arguments)
+},{"_process":216,"assert":2,"buffer":17,"dup":392,"events":209,"http":235,"https":210,"net":1,"tls":1,"util":247}],642:[function(require,module,exports){
+arguments[4][393][0].apply(exports,arguments)
+},{"./lib/auth":551,"./lib/cookies":552,"./lib/getProxyFromURI":553,"./lib/har":554,"./lib/helpers":555,"./lib/multipart":556,"./lib/oauth":557,"./lib/querystring":558,"./lib/redirect":559,"./lib/tunnel":560,"_process":216,"aws-sign2":561,"bl":562,"buffer":17,"caseless":571,"dup":393,"forever-agent":575,"form-data":576,"hawk":605,"http":235,"http-signature":606,"https":210,"mime-types":623,"stream":234,"stringstream":633,"url":245,"util":247,"zlib":16}],643:[function(require,module,exports){
 (function (Buffer){
 // var assert = require('assert')
 var async = require('async')
@@ -69163,14 +69335,7 @@ var events = require('events')
 var request = require('request')
 var bitcoin = require('bitcoinjs-lib')
 var crypto = require('crypto')
-var redis = require('redis')
-var FileSystem
-
-if (typeof window === 'undefined') {
-  FileSystem = require('./filesystem.js')
-} else {
-  FileSystem = require('./localstorage.js')
-}
+var DataStorage = require('data-storage')
 
 var MAX_EMPTY_ACCOUNTS = 3
 var MAX_EMPTY_ADDRESSES = 3
@@ -69202,32 +69367,33 @@ var HDWallet = function (settings) {
   }
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
+  if (settings.ds) {
+    self.ds = settings.ds
+  }
 }
 
 util.inherits(HDWallet, events.EventEmitter)
 
 HDWallet.prototype.init = function (cb) {
   var self = this
-  var end = function () {
-    self.hasRedis = false
-    self.fs = new FileSystem()
-    return self.afterRedisInit(cb)
+  
+  if (self.ds) {
+    self.afterDSInit(cb)
   }
-  if (typeof window !== 'undefined') return end()
-  self.redisClient = redis.createClient(self.redisPort, self.redisHost)
-  self.redisClient.on('error', function (err) {
-    if (err) console.error('Redis err: ' + err)
-    self.redisClient.end()
-    end()
-  })
-  self.redisClient.on('connect', function () {
-    // console.log('redis connected!')
-    self.hasRedis = true
-    self.afterRedisInit(cb)
-  })
+  else {
+    var settings = {
+      redisPort: self.redisPort,
+      redisHost: self.redisHost
+    }
+    self.ds = new DataStorage(settings)
+    self.ds.once('connect', function () {
+      self.afterDSInit(cb)
+    })
+    self.ds.init()
+  }
 }
 
-HDWallet.prototype.afterRedisInit = function (cb) {
+HDWallet.prototype.afterDSInit = function (cb) {
   var self = this
   if (self.needToDiscover) {
     self.discover(function (err) {
@@ -69256,39 +69422,21 @@ HDWallet.prototype.setDB = function (key, value) {
   var self = this
 
   var seedKey = self.getKeyPrefix()
-  if (self.hasRedis) {
-    self.redisClient.hset(seedKey, key, value)
-  } else {
-    if (self.fs) {
-      self.fs.hset(seedKey, key, value)
-    }
-  }
+  self.ds.hset(seedKey, key, value)
 }
 
 HDWallet.prototype.getDB = function (key, callback) {
   var self = this
 
   var seedKey = self.getKeyPrefix()
-  if (self.hasRedis) {
-    return self.redisClient.hget(seedKey, key, callback)
-  } else if (self.fs) {
-    return callback(null, self.fs.hget(seedKey, key))
-  } else {
-    return callback('Key ' + key + ' not found.')
-  }
+  return self.ds.hget(seedKey, key, callback)
 }
 
 HDWallet.prototype.getKeys = function (callback) {
   var self = this
 
   var seedKey = self.getKeyPrefix()
-  if (self.hasRedis) {
-    return self.redisClient.hkeys(seedKey, callback)
-  } else if (self.fs) {
-    return callback(null, self.fs.hkeys(seedKey))
-  } else {
-    return callback('Keys not found.')
-  }
+  return self.ds.hkeys(seedKey, callback)
 }
 
 HDWallet.prototype.getAddresses = function (callback) {
@@ -69587,65 +69735,5 @@ var doubleSha256 = function (message) {
 module.exports = HDWallet
 
 }).call(this,require("buffer").Buffer)
-},{"./filesystem.js":640,"./localstorage.js":642,"async":489,"bitcoinjs-lib":528,"buffer":17,"crypto":23,"events":209,"redis":540,"request":547,"util":247}],642:[function(require,module,exports){
-module.exports = LocalStorage
-
-function LocalStorage () {}
-
-LocalStorage.prototype.get = function (key) {
-  var value = localStorage.getItem(key)
-  try {
-    value = JSON.parse(value)
-  } catch (e) {
-    // not an object...
-  }
-  return value
-}
-
-LocalStorage.prototype.set = function (key, value) {
-  if (typeof value === 'object') {
-    value = JSON.stringify(value)
-  }
-  return localStorage.setItem(key, value)
-}
-
-LocalStorage.prototype.hget = function (key, hash) {
-  if (key && hash) {
-    var hvalue = this.get(key)
-    if (hvalue && typeof hvalue === 'object') {
-      return hvalue[hash]
-    }
-  }
-  return null
-}
-
-LocalStorage.prototype.hset = function (key, hash, value, callback) {
-  if (!callback) callback = function () { }
-  if (!key) return callback('No key.')
-  if (!hash) return callback('No hash.')
-  value = value || null
-  var hvalue = this.get(key)
-  if (!hvalue) {
-    // this.set(key, {})
-    hvalue = {}
-  }
-  if (typeof hvalue !== 'object') return callback('Key ' + key + ' is set but not an object.')
-  hvalue[hash] = value
-  this.set(key, hvalue)
-  callback()
-}
-
-LocalStorage.prototype.hkeys = function (key) {
-  if (key) {
-    var hvalue = this.get(key)
-    if (hvalue && typeof hvalue === 'object') {
-      return Object.keys(hvalue)
-    } else {
-      return null
-    }
-  }
-  return []
-}
-
-},{}]},{},[488])(488)
+},{"async":502,"bitcoinjs-lib":541,"buffer":17,"crypto":23,"data-storage":499,"events":209,"request":550,"util":247}]},{},[488])(488)
 });
