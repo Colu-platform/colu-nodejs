@@ -15,14 +15,13 @@ describe('Test Colu SDK', function () {
   var utxo
 
   var settings = {
-    network: 'testnet',
-    coluHost: 'https://dev.engine.colu.co'
+    network: 'testnet'
   }
 
   var colu
 
   it('Should create and broadcast issue tx.', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     colu = new Colu(settings)
     colu.on('connect', function () {
       privateSeed = colu.hdwallet.getPrivateSeed()
@@ -77,7 +76,7 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast send tx.', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     var address = fromAddress
     var args = {
       from: [address],
@@ -101,7 +100,7 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast send tx to phone.', function (done) {
-    this.timeout(30000)
+    this.timeout(60000)
     var address = fromAddress
     var args = {
       from: [address],
