@@ -5,7 +5,10 @@
   "main": "src/colu.js",
   "scripts": {
     "test": "istanbul cover _mocha -- -R spec",
-    "coveralls": "cat ./coverage/lcov.info | coveralls"
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
+    "browserify": "browserify ./src/colu.js -o ./client/colu.client.js --im -s Colu",
+    "uglify": "uglifyjs -c -o ./client/colu.client.min.js -- ./client/colu.client.js",
+    "preversion": "npm run browserify | npm run uglify"
   },
   "bin": {
     "colu": "bin/run.js"
@@ -48,7 +51,9 @@
     "mkpath": "^0.1.0",
     "morgan": "^1.6.1",
     "path-extra": "^1.0.3",
-    "request": "^2.58.0"
+    "request": "^2.58.0",
+    "browserify": "^12.0.0",
+    "uglify-js": "^2.5.0"
   },
   "devDependencies": {
     "chai": "^3.0.0",
