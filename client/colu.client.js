@@ -66695,8 +66695,13 @@ Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
   function (err) {
     if (err) return callback(err)
     // return the metadata (if !full, just the partial)
+    var partial = getPartialMetadata(metadata)
     if (!full) {
-      metadata = getPartialMetadata(metadata)
+      metadata = partial
+    } else {
+      for (var attr in partial) {
+        metadata[attr] = partial[attr]
+      }
     }
     return callback(null, metadata)
   })
@@ -66724,11 +66729,23 @@ var getPartialMetadata = function (metadata) {
     ans.assetName = utxoMetadata.data.assetName
     ans.description = utxoMetadata.data.description
     ans.issuer = utxoMetadata.data.issuer
+    if (utxoMetadata.data.urls) {
+      utxoMetadata.data.urls.forEach(function (url) {
+        if (url.name === 'icon') {
+          ans.icon = url.url
+        }
+        if (url.name === 'large_icon') {
+          ans.large_icon = url.url
+        }
+      })
+    }
   }
   else {
     ans.assetName = metadata.assetName
     ans.description = metadata.description
     ans.issuer = metadata.issuer
+    ans.icon = metadata.icon
+    ans.large_icon = metadata.large_icon
   }
   return ans
 }

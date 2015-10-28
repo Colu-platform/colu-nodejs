@@ -12,6 +12,7 @@ describe('Test Colu SDK', function () {
   var assetName = 'test_assetName'
   var issuer = 'test_issuer'
   var description = 'test_description'
+  var icon = 'https://www.colu.co/layout/img/colu.png'
   var utxo
 
   var settings = {
@@ -38,8 +39,13 @@ describe('Test Colu SDK', function () {
         metadata: {
           assetName: assetName,
           issuer: issuer,
-          description:description
-        }
+          description:description,
+          urls: [{
+            name: 'icon',
+            url: icon,
+            mimeType: 'image/png'
+          }]
+        },
       }
       colu.issueAsset(args, function (err, ans) {
         assert.ifError(err)
@@ -138,12 +144,10 @@ describe('Test Colu SDK', function () {
     colu.getAssetMetadata(assetId, utxo, true, function (err, metadata) {
       assert.ifError(err)
       expect(metadata).to.be.a('object')
-      expect(metadata.metadataOfIssuence).to.be.a('object')
-      expect(metadata.metadataOfIssuence.data).to.be.a('object')
-      var data = metadata.metadataOfIssuence.data
-      assert.equal(data.assetName, assetName)
-      assert.equal(data.issuer, issuer)
-      assert.equal(data.description, description)
+      assert.equal(metadata.assetName, assetName)
+      assert.equal(metadata.issuer, issuer)
+      assert.equal(metadata.description, description)
+      assert.equal(metadata.icon, icon)
       done()
     })
   })
@@ -155,6 +159,7 @@ describe('Test Colu SDK', function () {
       assert.equal(metadata.assetName, assetName)
       assert.equal(metadata.issuer, issuer)
       assert.equal(metadata.description, description)
+      assert.equal(metadata.icon, icon)
       done()
     })
   })

@@ -1,6 +1,6 @@
 {
   "name": "colu",
-  "version": "0.7.5",
+  "version": "0.7.8",
   "description": "Colu SDK for engine and colored-coins api.",
   "main": "src/colu.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "browserify": "browserify ./src/colu.js -o ./client/colu.client.js --im -s Colu",
     "uglify": "uglifyjs -c -o ./client/colu.client.min.js -- ./client/colu.client.js",
-    "preversion": "npm run browserify && npm run uglify"
+    "client_commit": "git commit --quiet ./client -m \"browserify and uglify\" || echo \"No changes to commit\"",
+    "preversion": "npm run browserify && npm run uglify && npm run client_commit"
   },
   "bin": {
     "colu": "bin/run.js"
@@ -46,7 +47,7 @@
     "crypto-hashing": "^0.3.1",
     "data-storage": "0.0.2",
     "express": "^4.13.3",
-    "hdwallet": "^0.2.2",
+    "hdwallet": "^0.4.0",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "morgan": "^1.6.1",
