@@ -34,6 +34,10 @@ var Colu = function (settings) {
 
 util.inherits(Colu, events.EventEmitter)
 
+Colu.encryptPrivateKey = HDWallet.encryptPrivateKey
+Colu.decryptPrivateKey = HDWallet.decryptPrivateKey
+Colu.createNewKey = HDWallet.createNewKey
+
 Colu.prototype.init = function (cb) {
   var self = this
 
@@ -51,7 +55,6 @@ Colu.prototype.init = function (cb) {
 
 Colu.prototype.afterDSInit = function (cb) {
   var self = this
-  
   self.hdwallet.ds = self.ds
   self.hdwallet.on('connect', function () {
     if (!self.initiated) {
@@ -291,7 +294,6 @@ Colu.prototype.getTransactions = function (callback) {
 
 Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
   var self = this
-  
   var metadata
   async.waterfall([
     function (cb) {
@@ -310,10 +312,9 @@ Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
           cacheAssetMetadata(self.ds, assetId, utxo, getPartialMetadata(metadata))
           cb()
         })
-      }
-      else {
+      } else {
         cb()
-      } 
+      }
     }
   ],
   function (err) {
@@ -348,8 +349,7 @@ var getPartialMetadata = function (metadata) {
     ans.assetName = utxoMetadata.data.assetName
     ans.description = utxoMetadata.data.description
     ans.issuer = utxoMetadata.data.issuer
-  }
-  else {
+  } else {
     ans.assetName = metadata.assetName
     ans.description = metadata.description
     ans.issuer = metadata.issuer
