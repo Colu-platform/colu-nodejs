@@ -66695,8 +66695,11 @@ Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
   function (err) {
     if (err) return callback(err)
     // return the metadata (if !full, just the partial)
+    var partial = getPartialMetadata(metadata)
     if (!full) {
-      metadata = getPartialMetadata(metadata)
+      metadata = partial
+    } else {
+      for (var attr in partial) { metadata[attr] = partial[attr]; }
     }
     return callback(null, metadata)
   })
