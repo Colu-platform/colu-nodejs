@@ -138,12 +138,9 @@ describe('Test Colu SDK', function () {
     colu.getAssetMetadata(assetId, utxo, true, function (err, metadata) {
       assert.ifError(err)
       expect(metadata).to.be.a('object')
-      expect(metadata.metadataOfIssuence).to.be.a('object')
-      expect(metadata.metadataOfIssuence.data).to.be.a('object')
-      var data = metadata.metadataOfIssuence.data
-      assert.equal(data.assetName, assetName)
-      assert.equal(data.issuer, issuer)
-      assert.equal(data.description, description)
+      assert.equal(metadata.assetName, assetName)
+      assert.equal(metadata.issuer, issuer)
+      assert.equal(metadata.description, description)
       done()
     })
   })
