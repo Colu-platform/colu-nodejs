@@ -74081,12 +74081,13 @@ var HDWallet = function (settings) {
   self.redisHost = settings.redisHost || '127.0.0.1'
   var privateSeed = settings.privateSeed || null
   if (settings.privateKey) {
-    var privateWif = settings.privateKey
-    if (!Buffer.isBuffer(privateWif)) {
-      privateWif = new Buffer(privateWif, 'hex')
+    self.masterPrivateKey = settings.privateKey
+    privateSeed = settings.privateKey
+    if (!Buffer.isBuffer(privateSeed)) {
+      privateSeed = new Buffer(privateSeed, 'hex')
     }
-    privateSeed = crypto.createHash('sha256').update(privateWif).digest()
     privateSeed = crypto.createHash('sha256').update(privateSeed).digest()
+    privateSeed = crypto.createHash('sha256').update(privateSeed).digest('hex')
   }
   if (!privateSeed) {
     self.privateSeed = crypto.randomBytes(32)
@@ -74117,7 +74118,6 @@ HDWallet.decryptPrivateKey = function (encryptedPrivKey, password, progressCallb
 
   var checksum = hash.sha256(hash.sha256(decryptedAddress))
   var hex = cs.decode(encryptedPrivKey)
-  console.log(decrypedPrivKey)
   if (
      checksum[0] === hex[3] &&
      checksum[1] === hex[4] &&
@@ -74138,13 +74138,12 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
     progressCallback = pass
     pass = null
   }
-  var key = CoinKey.createRandom()
-  var privateKey = key.privateWif
+  network = (network === 'testnet' ? bitcoin.networks.testnet : bitcoin.networks.bitcoin)
+  var key = bitcoin.ECKey.makeRandom()
+  var privateKey = key.toWIF(network)
   var buffer = new Buffer(privateKey)
   var privateSeed = crypto.createHash('sha256').update(buffer).digest()
-  privateSeed = crypto.createHash('sha256').update(privateSeed).digest()
-  privateSeed = new Buffer(privateSeed, 'hex')
-  network = 'testnet' ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  privateSeed = crypto.createHash('sha256').update(privateSeed).digest('hex')
   var master = bitcoin.HDNode.fromSeedHex(privateSeed, network)
   var extendedKey = deriveAccount(master, 0).toBase58(false)
   var answer = {
@@ -74160,11 +74159,9 @@ HDWallet.createNewKey = function (network, pass, progressCallback) {
 
 HDWallet.prototype.init = function (cb) {
   var self = this
-  
   if (self.ds) {
     self.afterDSInit(cb)
-  }
-  else {
+  } else {
     var settings = {
       redisPort: self.redisPort,
       redisHost: self.redisHost
