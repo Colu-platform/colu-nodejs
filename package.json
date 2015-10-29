@@ -47,7 +47,7 @@
     "crypto-hashing": "^0.3.1",
     "data-storage": "0.0.2",
     "express": "^4.13.3",
-    "hdwallet": "^0.4.1",
+    "hdwallet": "0.4.2",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "morgan": "^1.6.1",
