@@ -74084,7 +74084,7 @@ var HDWallet = function (settings) {
     self.masterPrivateKey = settings.privateKey
     privateSeed = settings.privateKey
     if (!Buffer.isBuffer(privateSeed)) {
-      privateSeed = new Buffer(privateSeed, 'hex')
+      privateSeed = new Buffer(privateSeed)
     }
     privateSeed = crypto.createHash('sha256').update(privateSeed).digest()
     privateSeed = crypto.createHash('sha256').update(privateSeed).digest('hex')
