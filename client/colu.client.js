@@ -69823,6 +69823,7 @@ var Colu = function (settings) {
   }
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
+  self.redisUrl = settings.redisUrl
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
@@ -69839,7 +69840,8 @@ Colu.prototype.init = function (cb) {
 
   var settings = {
     redisPort: self.redisPort,
-    redisHost: self.redisHost
+    redisHost: self.redisHost,
+    redisUrl: self.redisUrl
   }
   self.ds = new DataStorage(settings)
   self.ds.once('connect', function () {
