@@ -45,7 +45,7 @@
     "body-parser": "^1.13.3",
     "coloredcoinsd-wraper": "^0.4.0",
     "crypto-hashing": "^0.3.1",
-    "data-storage": "^0.0.3",
+    "data-storage": "~0.0.4",
     "express": "^4.13.3",
     "hdwallet": "~0.4.3",
     "jsonfile": "^2.2.1",
