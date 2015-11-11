@@ -27,6 +27,7 @@ var Colu = function (settings) {
   }
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
+  self.redisUrl = settings.redisUrl
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
@@ -34,12 +35,17 @@ var Colu = function (settings) {
 
 util.inherits(Colu, events.EventEmitter)
 
+Colu.encryptPrivateKey = HDWallet.encryptPrivateKey
+Colu.decryptPrivateKey = HDWallet.decryptPrivateKey
+Colu.createNewKey = HDWallet.createNewKey
+
 Colu.prototype.init = function (cb) {
   var self = this
 
   var settings = {
     redisPort: self.redisPort,
-    redisHost: self.redisHost
+    redisHost: self.redisHost,
+    redisUrl: self.redisUrl
   }
   self.ds = new DataStorage(settings)
   self.ds.once('connect', function () {
@@ -51,7 +57,6 @@ Colu.prototype.init = function (cb) {
 
 Colu.prototype.afterDSInit = function (cb) {
   var self = this
-  
   self.hdwallet.ds = self.ds
   self.hdwallet.on('connect', function () {
     if (!self.initiated) {
@@ -291,7 +296,6 @@ Colu.prototype.getTransactions = function (callback) {
 
 Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
   var self = this
-  
   var metadata
   async.waterfall([
     function (cb) {
@@ -310,10 +314,9 @@ Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
           cacheAssetMetadata(self.ds, assetId, utxo, getPartialMetadata(metadata))
           cb()
         })
-      }
-      else {
+      } else {
         cb()
-      } 
+      }
     }
   ],
   function (err) {
@@ -364,8 +367,7 @@ var getPartialMetadata = function (metadata) {
         }
       })
     }
-  }
-  else {
+  } else {
     ans.assetName = metadata.assetName
     ans.description = metadata.description
     ans.issuer = metadata.issuer

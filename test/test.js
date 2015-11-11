@@ -3,7 +3,6 @@ var assert = require('chai').assert
 var expect = require('chai').expect
 
 describe('Test Colu SDK', function () {
-
   var privateSeed
   var toAddress = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
   var assetId
@@ -26,6 +25,8 @@ describe('Test Colu SDK', function () {
     colu = new Colu(settings)
     colu.on('connect', function () {
       privateSeed = colu.hdwallet.getPrivateSeed()
+      expect(privateSeed).to.be.a('string')
+      expect(privateSeed).to.have.length.above(0)
       var args = {
         amount: 2,
         divisibility: 0,
@@ -39,13 +40,13 @@ describe('Test Colu SDK', function () {
         metadata: {
           assetName: assetName,
           issuer: issuer,
-          description:description,
+          description: description,
           urls: [{
             name: 'icon',
             url: icon,
             mimeType: 'image/png'
           }]
-        },
+        }
       }
       colu.issueAsset(args, function (err, ans) {
         assert.ifError(err)
