@@ -72,7 +72,7 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should return assets list for this wallet.', function (done) {
-    this.timeout(5000)
+    this.timeout(10000)
     colu.getAssets(function (err, assets) {
       assert.ifError(err)
       expect(assets).to.be.a('array')
@@ -140,7 +140,7 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should return asset metadata.', function (done) {
-    this.timeout(5000)
+    this.timeout(10000)
     colu.getAssetMetadata(assetId, utxo, true, function (err, metadata) {
       assert.ifError(err)
       expect(metadata).to.be.a('object')

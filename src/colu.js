@@ -335,6 +335,7 @@ var getCachedAssetMetadata = function (ds, assetId, utxo, callback) {
   utxo = utxo || 0
   ds.hget(assetId, utxo, function (err, metadataStr) {
     if (err) return callback(err)
+    if (!metadataStr) return callback(null, null)
     return callback(null, JSON.parse(metadataStr))
   })
 }
