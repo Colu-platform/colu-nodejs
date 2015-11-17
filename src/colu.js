@@ -98,22 +98,24 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
   if (!addresses) return callback('can\'t find addresses to fund')
-  async.map(addresses, function (address, cb) {
-    self.hdwallet.getAddressPrivateKey(address, cb)
-  },
-  function (err, privateKeys) {
-    if (err) return callback(err)
-    var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-    self.transmit(signedTxHex, lastTxid, callback)
-  })
+  async.map(addresses,
+    function (address, cb) {
+      self.hdwallet.getAddressPrivateKey(address, cb)
+    },
+    function (err, privateKeys) {
+      if (err) return callback(err)
+      var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
+      self.transmit(signedTxHex, lastTxid, callback)
+    }
+  )
 }
 
-Colu.prototype.transmit = function(signedTxHex, lastTxid, callback) {
+Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
   var dataParams = {
-        last_txid: lastTxid,
-        tx_hex: signedTxHex
-      },
-      path = this.coluHost + '/transmit_financed'
+    last_txid: lastTxid,
+    tx_hex: signedTxHex
+  },
+  path = this.coluHost + '/transmit_financed'
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) return callback(body)
@@ -190,20 +192,22 @@ Colu.prototype.sendAsset = function (args, callback) {
   async.waterfall([
     function (cb) {
       if (!args.to) return cb()
-      async.each(args.to, function (to, cb) {
-        if (!to.phoneNumber) return cb()
-        var dataParams = {
-          phone_number: to.phoneNumber
-        }
-        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
-          if (err) return cb(err)
-          if (response.statusCode !== 200) {
-            return cb(body)
+      async.each(args.to,
+        function (to, cb) {
+          if (!to.phoneNumber) return cb()
+          var dataParams = {
+            phone_number: to.phoneNumber
           }
-          to.address = body
-          cb()
-        })
-      }, cb)
+          request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
+            if (err) return cb(err)
+            if (response.statusCode !== 200) {
+              return cb(body)
+            }
+            to.address = body
+            cb()
+          })
+        },
+      cb)
     },
     function (cb) {
       if (!args.from || !Array.isArray(args.from) || !args.from.length) {
@@ -366,12 +370,8 @@ var getPartialMetadata = function (metadata) {
     ans.issuer = utxoMetadata.data.issuer
     if (utxoMetadata.data.urls) {
       utxoMetadata.data.urls.forEach(function (url) {
-        if (url.name === 'icon') {
-          ans.icon = url.url
-        }
-        if (url.name === 'large_icon') {
-          ans.large_icon = url.url
-        }
+        if (url.name === 'icon') ans.icon = url.url
+        if (url.name === 'large_icon') ans.large_icon = url.url
       })
     }
   } else {
