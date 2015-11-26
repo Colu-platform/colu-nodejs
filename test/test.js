@@ -18,10 +18,7 @@ describe('Test Colu SDK', function () {
   var settings = {
     network: 'testnet',
     events: true,
-    eventsSecure: true,
-    coluHost: 'https://dev.engine.colu.co',
-    // coluHost: 'http://localhost',
-    apiKey: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiZWphdnVAZ21haWwuY29tIiwiZXhwIjoiMjAxNS0xMC0xMlQyMjoxNDo0NC40NTZaIiwidHlwZSI6ImFwaV9rZXkifQ.BWfEdqGduR1cl5zVYj_QFjpXj8H-GHZT8h8XWMkIsYE'
+    eventsSecure: true
   }
 
   var colu
