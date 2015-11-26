@@ -6,6 +6,7 @@ var request = require('request')
 var DataStorage = require('data-storage')
 var HDWallet = require('hdwallet')
 var ColoredCoins = require('coloredcoinsd-wraper')
+var Events = require('./events.js')
 
 var mainnetColuHost = 'https://engine.colu.co'
 var testnetColuHost = 'https://testnet.engine.colu.co'
@@ -17,9 +18,9 @@ var Colu = function (settings) {
   self.initiated = false
   settings = settings || {}
   if (settings.network === 'testnet') {
-    self.coluHost = settings.coluHost || testnetColuHost
+    settings.coluHost = self.coluHost = settings.coluHost || testnetColuHost
   } else {
-    self.coluHost = settings.coluHost || mainnetColuHost
+    settings.coluHost = self.coluHost = settings.coluHost || mainnetColuHost
   }
   self.apiKey = settings.apiKey
   if (self.coluHost === mainnetColuHost) {
@@ -31,6 +32,12 @@ var Colu = function (settings) {
   self.hdwallet = new HDWallet(settings)
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
+  self.eventsSecure = settings.eventsSecure || false
+  if (settings.events) {
+    self.events = new Events(settings)
+    self.listenersAddtesses = {}
+  }
+  self.addresses = []
 }
 
 util.inherits(Colu, events.EventEmitter)
@@ -61,7 +68,15 @@ Colu.prototype.afterDSInit = function (cb) {
   self.hdwallet.on('connect', function () {
     if (!self.initiated) {
       self.initiated = true
-      self.emit('connect')
+      self.hdwallet.on('registerAddress', function (address) {
+        if (!~self.addresses.indexOf(address)) {
+          self.addresses.push(address)
+        }
+      })
+      self.hdwallet.getAddresses(function (err, addresses) {
+        self.addresses = addresses
+        self.emit('connect')
+      })
     }
   })
 
@@ -375,6 +390,74 @@ var getPartialMetadata = function (metadata) {
     ans.large_icon = metadata.large_icon
   }
   return ans
+}
+
+Colu.prototype.onNewTransaction = function (callback) {
+  var self = this
+
+  if (!self.events) return false
+  if (self.eventsSecure) {
+    self.events.on('newtransaction', function (data) {
+      if (self.isLocalTransaction(data.newtransaction)) {
+        callback(data.newtransaction)
+      }
+    })
+    self.events.join('newtransaction')
+  }
+  else {
+    var addresses = []
+    self.hdwallet.on('registerAddress', function (address) {
+      self.registerAddress(address, callback)
+    })
+    self.addresses.forEach(function (address) {
+      self.registerAddress(address, callback)
+    })
+  }
+}
+
+Colu.prototype.isLocalTransaction = function (transaction) {
+  var self = this
+
+  var localTx = false
+  
+  if (!localTx && transaction.vin) {
+    transaction.vin.forEach(function (input) {
+      if (!localTx && input.previousOutput && input.previousOutput.addresses) {
+        input.previousOutput.addresses.forEach(function (address) {
+          if (!localTx && ~self.addresses.indexOf(address)) {
+            localTx = true
+          }
+        })
+      }
+    })
+  }
+
+  if (!localTx && transaction.vout) {
+    transaction.vout.forEach(function (output) {
+      if (!localTx && output.scriptPubKey && output.scriptPubKey.addresses) {
+        output.scriptPubKey.addresses.forEach(function (address) {
+          if (!localTx && ~self.addresses.indexOf(address)) {
+            localTx = true
+          }
+        })
+      }
+    })
+  }
+
+  return localTx
+}
+
+Colu.prototype.registerAddress = function (address, callback) {
+  var self = this
+  self.listenersAddtesses[callback] = self.listenersAddtesses[callback] || []
+  if (!~self.listenersAddtesses[callback].indexOf(address)) {
+    var channel = 'address/'+address
+    self.events.on(channel, function (data) {
+      callback(data.transaction)
+    })
+    self.listenersAddtesses[callback].push(address)
+    self.events.join(channel)
+  }
 }
 
 module.exports = Colu
