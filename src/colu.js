@@ -108,22 +108,33 @@ Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
   })
 }
 
-Colu.prototype.signAndTransmit = function (txHex, lastTxid, host, callback) {
+Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
   var self = this
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
   if (!addresses) return callback('can\'t find addresses to fund')
-  async.map(addresses, function (address, cb) {
-    self.hdwallet.getAddressPrivateKey(address, cb)
-  },
-  function (err, privateKeys) {
-    if (err) return callback(err)
-    var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-    var dataParams = {
-      last_txid: lastTxid,
-      tx_hex: signedTxHex
+  async.map(addresses,
+    function (address, cb) {
+      self.hdwallet.getAddressPrivateKey(address, cb)
+    },
+    function (err, privateKeys) {
+      if (err) return callback(err)
+      var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
+      self.transmit(signedTxHex, lastTxid, callback)
     }
-    request.post(host + '/transmit_financed', {json: dataParams }, callback)
+  )
+}
+
+Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
+  var dataParams = {
+    last_txid: lastTxid,
+    tx_hex: signedTxHex
+  },
+  path = this.coluHost + '/transmit_financed'
+  request.post(path, { json: dataParams }, function (err, response, body) {
+    if (err) return callback(err)
+    if (!response || response.statusCode !== 200) return callback(body)
+    callback(null, body)
   })
 }
 
@@ -172,10 +183,9 @@ Colu.prototype.issueAsset = function (args, callback) {
       if (!info || !info.txHex) return cb('wrong server response')
       assetInfo = info
       lastTxid = assetInfo.financeTxid
-      self.signAndTransmit(assetInfo.txHex, lastTxid, self.coluHost, cb)
+      self.signAndTransmit(assetInfo.txHex, lastTxid, cb)
     },
-    function (response, body, cb) {
-      if (response.statusCode !== 200) return cb(body)
+    function (body, cb) {
       assetInfo.txid = body.txid2.txid
       assetInfo.receivingAddresses = receivingAddresses
       assetInfo.issueAddress = args.issueAddress
@@ -197,20 +207,22 @@ Colu.prototype.sendAsset = function (args, callback) {
   async.waterfall([
     function (cb) {
       if (!args.to) return cb()
-      async.each(args.to, function (to, cb) {
-        if (!to.phoneNumber) return cb()
-        var dataParams = {
-          phone_number: to.phoneNumber
-        }
-        request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
-          if (err) return cb(err)
-          if (response.statusCode !== 200) {
-            return cb(body)
+      async.each(args.to,
+        function (to, cb) {
+          if (!to.phoneNumber) return cb()
+          var dataParams = {
+            phone_number: to.phoneNumber
           }
-          to.address = body
-          cb()
-        })
-      }, cb)
+          request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
+            if (err) return cb(err)
+            if (response.statusCode !== 200) {
+              return cb(body)
+            }
+            to.address = body
+            cb()
+          })
+        },
+      cb)
     },
     function (cb) {
       if (!args.from || !Array.isArray(args.from) || !args.from.length) {
@@ -231,10 +243,9 @@ Colu.prototype.sendAsset = function (args, callback) {
       sendInfo = info
       lastTxid = sendInfo.financeTxid
 
-      self.signAndTransmit(sendInfo.txHex, lastTxid, self.coluHost, cb)
+      self.signAndTransmit(sendInfo.txHex, lastTxid, cb)
     },
-    function (response, body, cb) {
-      if (response.statusCode !== 200) return cb(body)
+    function (body, cb) {
       sendInfo.txid = body.txid2.txid
       cb(null, sendInfo)
     }
@@ -374,12 +385,8 @@ var getPartialMetadata = function (metadata) {
     ans.issuer = utxoMetadata.data.issuer
     if (utxoMetadata.data.urls) {
       utxoMetadata.data.urls.forEach(function (url) {
-        if (url.name === 'icon') {
-          ans.icon = url.url
-        }
-        if (url.name === 'large_icon') {
-          ans.large_icon = url.url
-        }
+        if (url.name === 'icon') ans.icon = url.url
+        if (url.name === 'large_icon') ans.large_icon = url.url
       })
     }
   } else {
