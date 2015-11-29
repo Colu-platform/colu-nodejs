@@ -233,14 +233,47 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it ('Should return new transaction unsecure again with different callback.', function (done) {
+  it ('Should return new cc transaction secure.', function (done) {
+    this.timeout(100000)
+
+    colu.eventsSecure = true
+    var txid
+    var oneTimeDone = 0
+    colu.onNewCCTransaction(function (transaction) {
+      if (txid === transaction.txid && !oneTimeDone++) {
+        done()
+      }
+    })
+
+    var args = {
+      amount: 2,
+      divisibility: 0,
+      fee: 1000,
+      reissueable: false,
+      transfer: [
+        {
+          amount: 1
+        }
+      ]
+    }
+    colu.issueAsset(args, function (err, ans) {
+      assert.ifError(err)
+      txid = ans.txid
+      setTimeout(function () {
+        if (!oneTimeDone++) {
+          done('timeout of 3000ms exceeded.')
+        }
+      }, 3000)
+    })
+  })
+
+  it ('Should return cc new transaction unsecure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = false
     var txid
     var oneTimeDone = 0
 
-    colu.onNewTransaction(function (transaction) {
-      var a = 5 // just so the callback will be different
+    colu.onNewCCTransaction(function (transaction) {
       if (txid === transaction.txid && !oneTimeDone++) {
         done()
       }

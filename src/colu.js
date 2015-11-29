@@ -413,13 +413,24 @@ Colu.prototype.onNewTransaction = function (callback) {
   }
   else {
     var addresses = []
+    var transactions = []
     self.hdwallet.on('registerAddress', function (address) {
-      self.registerAddress(address, callback)
+      self.registerAddress(address, addresses, transactions, callback)
     })
     self.addresses.forEach(function (address) {
-      self.registerAddress(address, callback)
+      self.registerAddress(address, addresses, transactions, callback)
     })
   }
+}
+
+Colu.prototype.onNewCCTransaction = function (callback) {
+  var self = this
+
+  self.onNewTransaction(function (transaction) {
+    if (transaction.colored) {
+      callback(transaction)
+    }
+  })
 }
 
 Colu.prototype.isLocalTransaction = function (transaction) {
@@ -454,15 +465,19 @@ Colu.prototype.isLocalTransaction = function (transaction) {
   return localTx
 }
 
-Colu.prototype.registerAddress = function (address, callback) {
+Colu.prototype.registerAddress = function (address, addresses, transactions, callback) {
   var self = this
-  self.listenersAddtesses[callback] = self.listenersAddtesses[callback] || []
-  if (!~self.listenersAddtesses[callback].indexOf(address)) {
+  
+  if (!~addresses.indexOf(address)) {
     var channel = 'address/'+address
     self.events.on(channel, function (data) {
-      callback(data.transaction)
+      var transaction = data.transaction
+      if (!~transactions.indexOf(transaction.txid)) {
+        transactions.push(transaction.txid)
+        callback(transaction)
+      }
     })
-    self.listenersAddtesses[callback].push(address)
+    addresses.push(address)
     self.events.join(channel)
   }
 }
