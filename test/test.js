@@ -267,7 +267,7 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it ('Should return cc new transaction unsecure.', function (done) {
+  it ('Should return new cc transaction unsecure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = false
     var txid

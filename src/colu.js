@@ -426,11 +426,22 @@ Colu.prototype.onNewTransaction = function (callback) {
 Colu.prototype.onNewCCTransaction = function (callback) {
   var self = this
 
-  self.onNewTransaction(function (transaction) {
-    if (transaction.colored) {
-      callback(transaction)
-    }
-  })
+  if (!self.events) return false
+  if (self.eventsSecure) {
+    self.events.on('newcctransaction', function (data) {
+      if (self.isLocalTransaction(data.newcctransaction)) {
+        callback(data.newcctransaction)
+      }
+    })
+    self.events.join('newcctransaction')
+  }
+  else {
+    self.onNewTransaction(function (transaction) {
+      if (transaction.colored) {
+        callback(transaction)
+      }
+    })
+  }
 }
 
 Colu.prototype.isLocalTransaction = function (transaction) {
