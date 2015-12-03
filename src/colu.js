@@ -11,8 +11,6 @@ var Events = require('./events.js')
 var mainnetColuHost = 'https://engine.colu.co'
 var testnetColuHost = 'https://testnet.engine.colu.co'
 
-var FEE = 1000
-
 var Colu = function (settings) {
   var self = this
   self.initiated = false
@@ -146,7 +144,6 @@ Colu.prototype.issueAsset = function (args, callback) {
   var lastTxid
   var assetInfo
   var receivingAddresses
-  args.fee = FEE
   args.transfer = args.transfer || []
   var hdwallet = self.hdwallet
 
@@ -198,11 +195,8 @@ Colu.prototype.issueAsset = function (args, callback) {
 Colu.prototype.sendAsset = function (args, callback) {
   var self = this
 
-  // var privateKey
-  // var publicKey
   var lastTxid
   var sendInfo
-  args.fee = args.fee || FEE
 
   async.waterfall([
     function (cb) {

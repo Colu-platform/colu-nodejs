@@ -31,7 +31,6 @@ describe('Test Colu SDK', function () {
       var args = {
         amount: 2,
         divisibility: 0,
-        fee: 1000,
         reissueable: false,
         transfer: [
           {
@@ -88,7 +87,6 @@ describe('Test Colu SDK', function () {
     var address = fromAddress
     var args = {
       from: [address],
-      fee: 1000,
       to: [
         {
           address: toAddress,
@@ -112,7 +110,6 @@ describe('Test Colu SDK', function () {
     var address = fromAddress
     var args = {
       from: [address],
-      fee: 1000,
       to: [
         {
           phoneNumber: phoneNumber,
@@ -180,7 +177,6 @@ describe('Test Colu SDK', function () {
     var args = {
       amount: 2,
       divisibility: 0,
-      fee: 1000,
       reissueable: false,
       transfer: [
         {
@@ -214,7 +210,6 @@ describe('Test Colu SDK', function () {
     var args = {
       amount: 2,
       divisibility: 0,
-      fee: 1000,
       reissueable: false,
       transfer: [
         {
@@ -248,7 +243,6 @@ describe('Test Colu SDK', function () {
     var args = {
       amount: 2,
       divisibility: 0,
-      fee: 1000,
       reissueable: false,
       transfer: [
         {
@@ -282,7 +276,6 @@ describe('Test Colu SDK', function () {
     var args = {
       amount: 2,
       divisibility: 0,
-      fee: 1000,
       reissueable: false,
       transfer: [
         {
