@@ -200,25 +200,6 @@ Colu.prototype.sendAsset = function (args, callback) {
 
   async.waterfall([
     function (cb) {
-      if (!args.to) return cb()
-      async.each(args.to,
-        function (to, cb) {
-          if (!to.phoneNumber) return cb()
-          var dataParams = {
-            phone_number: to.phoneNumber
-          }
-          request.post(self.coluHost + '/get_next_address_by_phone_number', {json: dataParams}, function (err, response, body) {
-            if (err) return cb(err)
-            if (response.statusCode !== 200) {
-              return cb(body)
-            }
-            to.address = body
-            cb()
-          })
-        },
-      cb)
-    },
-    function (cb) {
       if (!args.from || !Array.isArray(args.from) || !args.from.length) {
         return cb('Should have from as array of addresses.')
       }

@@ -15,12 +15,17 @@ describe('Test Colu SDK', function () {
   var icon = 'https://www.colu.co/layout/img/colu.png'
   var utxo
 
-  var settings = {
-    network: 'testnet',
-    events: true,
-    eventsSecure: true
+  var settings
+  try {
+    settings = require('./settings')
   }
-
+  catch (e) {
+    settings = {
+      network: 'testnet',
+      events: true,
+      eventsSecure: true,
+    }
+  }
   var colu
 
   it('Should create and broadcast issue tx.', function (done) {

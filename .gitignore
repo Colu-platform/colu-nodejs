@@ -28,3 +28,5 @@ node_modules
 
 test.html
 properties.conf
+test/settings.js
+test/settings.json
