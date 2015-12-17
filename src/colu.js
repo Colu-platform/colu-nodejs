@@ -94,10 +94,9 @@ Colu.prototype.afterDSInit = function (cb) {
 Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
   var dataParams = {
     financed_address: financeAddress,
-    type: type,
     cc_args: args
   }
-  var path = this.coluHost + '/build_finance'
+  var path = this.coluHost + '/build_finance_'+type
   if (this.apiKey) path += '?token=' + this.apiKey
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
@@ -244,7 +243,7 @@ Colu.prototype.getAssets = function (callback) {
         if (addressUtxo.utxos) {
           addressUtxo.utxos.forEach(function (utxo) {
             if (utxo.assets) {
-              utxo.assets.forEach(function (asset) {
+              utxo.assets.forEach(function (asset, i) {
                 assets.push({
                   address: addressUtxo.address,
                   txid: utxo.txid,
@@ -253,7 +252,8 @@ Colu.prototype.getAssets = function (callback) {
                   amount: asset.amount,
                   issueTxid: asset.issueTxid,
                   divisibility: asset.divisibility,
-                  lockStatus: asset.lockStatus
+                  lockStatus: asset.lockStatus,
+                  assetIndex: i
                 })
               })
             }
