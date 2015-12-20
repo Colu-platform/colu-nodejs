@@ -269,29 +269,31 @@ Colu.prototype.getTransactions = function (callback) {
   var self = this
   self.hdwallet.getAddresses(function (err, addresses) {
     if (err) return callback(err)
-    var dataParams = {
-      addresses: addresses,
-      with_transactions: true
-    }
-    request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
-      if (err) return callback(err)
-      if (!response || response.statusCode !== 200) return callback(body)
-      var addressesInfo = body
-      var transactions = []
-      var txids = []
+    self.getTransactionsForAddresses(addresses, callback)
+  })
+}
 
-      addressesInfo.forEach(function (addressInfo) {
-        if (addressInfo.transactions) {
-          addressInfo.transactions.forEach(function (transaction) {
-            if (txids.indexOf(transaction.txis) === -1) {
-              transactions.push(transaction)
-            }
-          })
-        }
-      })
+Colu.prototype.getTransactionsForAddresses = function (addresses, callback) {
+  var self = this
+  var dataParams = {
+    addresses: addresses,
+    with_transactions: true
+  }
+  request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
+    if (err) return callback(err)
+    if (!response || response.statusCode !== 200) return callback(body)
+    var addressesInfo = body
+    var transactions = []
 
-      callback(null, transactions)
+    addressesInfo.forEach(function (addressInfo) {
+      if (addressInfo.transactions) {
+        addressInfo.transactions.forEach(function (transaction) {
+          transactions.push(transaction)
+        })
+      }
     })
+
+    callback(null, transactions)
   })
 }
 
