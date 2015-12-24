@@ -34,7 +34,7 @@ describe('Test Colu SDK', function () {
     colu.on('connect', function () {
       privateSeed = colu.hdwallet.getPrivateSeed()
       var args = {
-        amount: 2,
+        amount: 3,
         divisibility: 0,
         reissueable: false,
         transfer: [
@@ -87,7 +87,30 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it('Should create and broadcast send tx.', function (done) {
+  it('Should create and broadcast send tx from utxo.', function (done) {
+    this.timeout(100000)
+    var address = fromAddress
+    var args = {
+      sendutxo: [utxo],
+      to: [
+        {
+          address: toAddress,
+          assetId: assetId,
+          amount: 1
+        }
+      ]
+    }
+    colu.sendAsset(args, function (err, ans) {
+      assert.ifError(err)
+      expect(ans.txHex).to.be.a('string')
+      expect(ans.txHex).to.have.length.above(0)
+      expect(ans.txid).to.be.a('string')
+      expect(ans.txid).to.have.length.above(0)
+      done()
+    })
+  })
+
+  it('Should create and broadcast send tx from address.', function (done) {
     this.timeout(100000)
     var address = fromAddress
     var args = {
