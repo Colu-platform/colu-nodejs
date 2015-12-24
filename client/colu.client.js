@@ -102681,9 +102681,8 @@ Colu.prototype.afterDSInit = function (cb) {
   })
 }
 
-Colu.prototype.buildTransaction = function (financeAddress, type, args, cb) {
+Colu.prototype.buildTransaction = function (type, args, cb) {
   var dataParams = {
-    financed_address: financeAddress,
     cc_args: args
   }
   var path = this.coluHost + '/build_finance_'+type
@@ -102737,7 +102736,7 @@ Colu.prototype.issueAsset = function (args, callback) {
   var hdwallet = self.hdwallet
 
   async.waterfall([
-    // Ask for finance.
+    // Build finance transaction.
     function (cb) {
       if (!args.issueAddress) return cb(null, hdwallet.getPrivateKey(args.accountIndex))
       hdwallet.getAddressPrivateKey(args.issueAddress, cb)
@@ -102762,7 +102761,7 @@ Colu.prototype.issueAsset = function (args, callback) {
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      self.buildTransaction(args.issueAddress, 'issue', args, cb)
+      self.buildTransaction('issue', args, cb)
     },
     function (info, cb) {
       if (typeof info === 'function') return info('wrong server response')
@@ -102788,20 +102787,14 @@ Colu.prototype.sendAsset = function (args, callback) {
   var sendInfo
 
   async.waterfall([
+    // Build finance transaction.
     function (cb) {
-      if (!args.from || !Array.isArray(args.from) || !args.from.length) {
-        return cb('Should have from as array of addresses.')
+      if ((!args.from || !Array.isArray(args.from) || !args.from.length) && (!args.sendutxo || !Array.isArray(args.sendutxo) || !args.sendutxo.length)) {
+        return cb('Should have from as array of addresses or sendutxo as array of utxos.')
       }
-      self.hdwallet.getAddressPrivateKey(args.from[0], cb)
-    },
-    // Ask for finance.
-    function (priv, cb) {
-      // privateKey = priv
-      // publicKey = privateKey.pub
-      // var financeAmount
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      self.buildTransaction(args.from[0], 'send', args, cb)
+      self.buildTransaction('send', args, cb)
     },
     function (info, cb) {
       sendInfo = info
