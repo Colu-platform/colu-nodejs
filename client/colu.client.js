@@ -103059,7 +103059,8 @@ Colu.prototype.getIssuedAssets = function (callback) {
     transactions.forEach(function (transaction) {
       if (transaction.colored && transaction.ccdata && transaction.ccdata.length && transaction.ccdata[0].type === 'issuance') {
         var issuance = {
-          issuanceTxid: transaction.txid,
+          issueTxid: transaction.txid,
+          txid: transaction.txid,
           lockStatus: transaction.ccdata[0].lockStatus,
           divisibility: transaction.ccdata[0].divisibility,
           amount: transaction.ccdata[0].amount,
@@ -103089,6 +103090,10 @@ Colu.prototype.getIssuedAssets = function (callback) {
         }
         issuance.assetId = assetId
         issuance.outputIndexes = indexes
+        if (!transaction.vin || !transaction.vin.length || !transaction.vin[0].previousOutput || !transaction.vin[0].previousOutput.addresses || !transaction.vin[0].previousOutput.addresses.length) {
+          return
+        }
+        issuance.address = transaction.vin[0].previousOutput.addresses[0]
         issuances.push(issuance)
       }
     })
