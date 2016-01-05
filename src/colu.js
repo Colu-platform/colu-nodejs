@@ -469,7 +469,7 @@ Colu.prototype.getIssuedAssets = function (callback) {
     transactions.forEach(function (transaction) {
       if (transaction.colored && transaction.ccdata && transaction.ccdata.length && transaction.ccdata[0].type === 'issuance') {
         var issuance = {
-          issuanceTxis: transaction.txid,
+          issuanceTxid: transaction.txid,
           lockStatus: transaction.ccdata[0].lockStatus,
           divisibility: transaction.ccdata[0].divisibility,
           amount: transaction.ccdata[0].amount,
