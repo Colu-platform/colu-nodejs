@@ -103051,7 +103051,7 @@ Colu.prototype.registerAddress = function (address, addresses, transactions, cal
   }
 }
 
-Colu.prototype.getIssuancedAssets = function (callback) {
+Colu.prototype.getIssuedAssets = function (callback) {
   var self = this
   self.getTransactions(function (err, transactions) {
     if (err) return callback(err)
