@@ -103051,6 +103051,51 @@ Colu.prototype.registerAddress = function (address, addresses, transactions, cal
   }
 }
 
+Colu.prototype.getIssuancedAssets = function (callback) {
+  var self = this
+  self.getTransactions(function (err, transactions) {
+    if (err) return callback(err)
+    var issuances = []
+    transactions.forEach(function (transaction) {
+      if (transaction.colored && transaction.ccdata && transaction.ccdata.length && transaction.ccdata[0].type === 'issuance') {
+        var issuance = {
+          issuanceTxis: transaction.txid,
+          lockStatus: transaction.ccdata[0].lockStatus,
+          divisibility: transaction.ccdata[0].divisibility,
+          amount: transaction.ccdata[0].amount,
+          amountOfUnits: transaction.ccdata[0].amountOfUnits
+        }
+        if (!transaction.ccdata[0].payments || !transaction.ccdata[0].payments.length) {
+          return
+        }
+        var assetId
+        var indexes = []
+        transaction.ccdata[0].payments.forEach(function (payment) {
+          var coloredOutout = payment.output  
+          if (!transaction.vout || !transaction.vout.length || !transaction.vout[coloredOutout] || !transaction.vout[coloredOutout].assets || !transaction.vout[coloredOutout].assets.length || !transaction.vout[coloredOutout].assets[0].assetId) {
+            return
+          }
+          if (!assetId) {
+            assetId = transaction.vout[coloredOutout].assets[0].assetId
+          } else {
+            if (assetId !== transaction.vout[coloredOutout].assets[0].assetId) {
+              return err = true
+            }
+          }
+          indexes.push(coloredOutout)
+        })
+        if (err || !assetId) {
+          return
+        }
+        issuance.assetId = assetId
+        issuance.outputIndexes = indexes
+        issuances.push(issuance)
+      }
+    })
+    return callback(null, issuances)
+  })
+}
+
 module.exports = Colu
 
 },{"./events.js":575,"async":146,"coloredcoinsd-wraper":1,"data-storage":586,"events":361,"hdwallet":828,"request":400,"util":396}],575:[function(require,module,exports){
