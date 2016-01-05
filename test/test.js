@@ -168,10 +168,11 @@ describe('Test Colu SDK', function () {
 
   it('Should return issuances list for this wallet.', function (done) {
     this.timeout(5000)
-    colu.getIssuancedAssets(function (err, issuances) {
+    colu.getIssuedAssets(function (err, issuances) {
       assert.ifError(err)
       expect(issuances).to.be.a('array')
       expect(issuances).to.have.length.above(0)
+      assert.equal(issuances[0].assetId, assetId)
       done()
     })
   })
