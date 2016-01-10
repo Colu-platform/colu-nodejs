@@ -6,7 +6,7 @@ var Colu = require(__dirname + '/../colu.js')
 var bodyParser = require('body-parser')
 var jf = require('jsonfile')
 var hash = require('crypto-hashing')
-var morgan = require('morgan')('dev')
+var morgan = require('morgan')('dev')jnjkbnbn
 
 var serverSettings = path.join(path.datadir('colu'), 'settings.json')
 var settings
