@@ -102848,33 +102848,50 @@ Colu.prototype.getAssets = function (callback) {
   })
 }
 
-Colu.prototype.getTransactions = function (callback) {
+Colu.prototype.getTransactions = function (addresses, callback) {
   var self = this
-  self.hdwallet.getAddresses(function (err, addresses) {
-    if (err) return callback(err)
-    var dataParams = {
-      addresses: addresses,
-      with_transactions: true
-    }
-    request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
+
+  if (typeof addresses === 'function') {
+    callback = addresses
+    addresses = null
+  }
+
+  if (!addresses) {
+    self.hdwallet.getAddresses(function (err, addresses) {
       if (err) return callback(err)
-      if (!response || response.statusCode !== 200) return callback(body)
-      var addressesInfo = body
-      var transactions = []
-      var txids = []
-
-      addressesInfo.forEach(function (addressInfo) {
-        if (addressInfo.transactions) {
-          addressInfo.transactions.forEach(function (transaction) {
-            if (txids.indexOf(transaction.txis) === -1) {
-              transactions.push(transaction)
-            }
-          })
-        }
-      })
-
-      callback(null, transactions)
+      self.getTransactionsFromAddresses(addresses, callback)
     })
+  }
+  else {
+    self.getTransactionsFromAddresses(addresses, callback)
+  }
+}
+
+Colu.prototype.getTransactionsFromAddresses = function (addresses, callback) {
+  var self = this
+
+  var dataParams = {
+    addresses: addresses,
+    with_transactions: true
+  }
+  request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
+    if (err) return callback(err)
+    if (!response || response.statusCode !== 200) return callback(body)
+    var addressesInfo = body
+    var transactions = []
+    var txids = []
+
+    addressesInfo.forEach(function (addressInfo) {
+      if (addressInfo.transactions) {
+        addressInfo.transactions.forEach(function (transaction) {
+          if (txids.indexOf(transaction.txis) === -1) {
+            transactions.push(transaction)
+          }
+        })
+      }
+    })
+
+    callback(null, transactions)
   })
 }
 
@@ -103051,7 +103068,7 @@ Colu.prototype.registerAddress = function (address, addresses, transactions, cal
   }
 }
 
-Colu.prototype.getIssuedAssetsFromTransactions = function(transactions) {
+Colu.prototype.getIssuedAssetsFromTransactions = function(addresses, transactions) {
   var issuances = []
   transactions.forEach(function (transaction) {
     if (transaction.colored && transaction.ccdata && transaction.ccdata.length && transaction.ccdata[0].type === 'issuance') {
@@ -103091,8 +103108,11 @@ Colu.prototype.getIssuedAssetsFromTransactions = function(transactions) {
       if (!transaction.vin || !transaction.vin.length || !transaction.vin[0].previousOutput || !transaction.vin[0].previousOutput.addresses || !transaction.vin[0].previousOutput.addresses.length) {
         return
       }
-      issuance.address = transaction.vin[0].previousOutput.addresses[0]
-      issuances.push(issuance)
+      var address = transaction.vin[0].previousOutput.addresses[0]
+      if (~addresses.indexOf(address)) {
+        issuance.address = address
+        issuances.push(issuance)
+      }
     }
   })
   return issuances
@@ -103105,14 +103125,17 @@ Colu.prototype.getIssuedAssets = function (transactions, callback) {
     transactions = null
   }
 
-  if (!transactions) {
-    self.getTransactions(function (err, transactions) {
-      if (err) return callback(err)
-      return callback(null, self.getIssuedAssetsFromTransactions(transactions))
-    })
-  } else {
-    return callback(null, self.getIssuedAssetsFromTransactions(transactions))
-  }
+  self.hdwallet.getAddresses(function (err, addresses) {
+    if (err) return callback(err)
+    if (!transactions) {
+      self.getTransactions(addresses, function (err, transactions) {
+        if (err) return callback(err)
+        return callback(null, self.getIssuedAssetsFromTransactions(addresses, transactions))
+      })
+    } else {
+      return callback(null, self.getIssuedAssetsFromTransactions(addresses, transactions))
+    }
+  })
 }
 
 module.exports = Colu
