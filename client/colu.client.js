@@ -103140,7 +103140,7 @@ Colu.prototype.getIssuedAssets = function (transactions, callback) {
 
 module.exports = Colu
 
-},{"./events.js":575,"async":146,"coloredcoinsd-wraper":1,"data-storage":586,"events":361,"hdwallet":828,"request":400,"util":396}],575:[function(require,module,exports){
+},{"./events.js":575,"async":146,"coloredcoinsd-wraper":1,"data-storage":586,"events":361,"hdwallet":832,"request":400,"util":396}],575:[function(require,module,exports){
 var util = require('util')
 var events = require('events')
 var io = require('socket.io-client')
@@ -105531,6 +105531,108 @@ LocalStorage.prototype.hkeys = function (key) {
 },{}],589:[function(require,module,exports){
 arguments[4][79][0].apply(exports,arguments)
 },{"_process":368,"dup":79}],590:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"../package.json":593,"dup":3}],591:[function(require,module,exports){
+arguments[4][4][0].apply(exports,arguments)
+},{"./bigi":590,"assert":148,"buffer":163,"dup":4}],592:[function(require,module,exports){
+arguments[4][5][0].apply(exports,arguments)
+},{"./bigi":590,"./convert":591,"dup":5}],593:[function(require,module,exports){
+module.exports={
+  "name": "bigi",
+  "version": "1.4.1",
+  "description": "Big integers.",
+  "keywords": [
+    "cryptography",
+    "math",
+    "bitcoin",
+    "arbitrary",
+    "precision",
+    "arithmetic",
+    "big",
+    "integer",
+    "int",
+    "number",
+    "biginteger",
+    "bigint",
+    "bignumber",
+    "decimal",
+    "float"
+  ],
+  "devDependencies": {
+    "coveralls": "^2.11.2",
+    "istanbul": "^0.3.5",
+    "jshint": "^2.5.1",
+    "mocha": "^2.1.0",
+    "mochify": "^2.1.0"
+  },
+  "repository": {
+    "url": "git+https://github.com/cryptocoinjs/bigi.git",
+    "type": "git"
+  },
+  "main": "./lib/index.js",
+  "scripts": {
+    "browser-test": "mochify --wd -R spec",
+    "test": "_mocha -- test/*.js",
+    "jshint": "jshint --config jshint.json lib/*.js ; true",
+    "unit": "mocha",
+    "coverage": "istanbul cover ./node_modules/.bin/_mocha -- --reporter list test/*.js",
+    "coveralls": "npm run-script coverage && node ./node_modules/.bin/coveralls < coverage/lcov.info"
+  },
+  "dependencies": {},
+  "testling": {
+    "files": "test/*.js",
+    "harness": "mocha",
+    "browsers": [
+      "ie/9..latest",
+      "firefox/latest",
+      "chrome/latest",
+      "safari/6.0..latest",
+      "iphone/6.0..latest",
+      "android-browser/4.2..latest"
+    ]
+  },
+  "gitHead": "7d034a1b38ca90f68daa9de472dda2fb813836f1",
+  "bugs": {
+    "url": "https://github.com/cryptocoinjs/bigi/issues"
+  },
+  "homepage": "https://github.com/cryptocoinjs/bigi#readme",
+  "_id": "bigi@1.4.1",
+  "_shasum": "726e8ab08d1fe1dfb8aa6bb6309bffecf93a21b7",
+  "_from": "bigi@*",
+  "_npmVersion": "2.10.1",
+  "_nodeVersion": "2.1.0",
+  "_npmUser": {
+    "name": "jprichardson",
+    "email": "jprichardson@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "midnightlightning",
+      "email": "boydb@midnightdesign.ws"
+    },
+    {
+      "name": "sidazhang",
+      "email": "sidazhang89@gmail.com"
+    },
+    {
+      "name": "nadav",
+      "email": "npm@shesek.info"
+    },
+    {
+      "name": "jprichardson",
+      "email": "jprichardson@gmail.com"
+    }
+  ],
+  "dist": {
+    "shasum": "726e8ab08d1fe1dfb8aa6bb6309bffecf93a21b7",
+    "tarball": "http://registry.npmjs.org/bigi/-/bigi-1.4.1.tgz"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/bigi/-/bigi-1.4.1.tgz",
+  "readme": "ERROR: No README data found!"
+}
+
+},{}],594:[function(require,module,exports){
 (function (Buffer){
 var aes = require('browserify-aes')
 var assert = require('assert')
@@ -105775,13 +105877,13 @@ Bip38.prototype.verify = function (encryptedBase58) {
 module.exports = Bip38
 
 }).call(this,require("buffer").Buffer)
-},{"assert":148,"bigi":593,"browserify-aes":597,"buffer":163,"buffer-xor":613,"coinstring":614,"create-hash":616,"ecurve":632,"scryptsy":635}],591:[function(require,module,exports){
+},{"assert":148,"bigi":597,"browserify-aes":601,"buffer":163,"buffer-xor":617,"coinstring":618,"create-hash":620,"ecurve":636,"scryptsy":639}],595:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
-},{"../package.json":594,"dup":3}],592:[function(require,module,exports){
+},{"../package.json":598,"dup":3}],596:[function(require,module,exports){
 arguments[4][4][0].apply(exports,arguments)
-},{"./bigi":591,"assert":148,"buffer":163,"dup":4}],593:[function(require,module,exports){
+},{"./bigi":595,"assert":148,"buffer":163,"dup":4}],597:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"./bigi":591,"./convert":592,"dup":5}],594:[function(require,module,exports){
+},{"./bigi":595,"./convert":596,"dup":5}],598:[function(require,module,exports){
 module.exports={
   "name": "bigi",
   "version": "1.4.1",
@@ -105877,45 +105979,45 @@ module.exports={
   "readme": "ERROR: No README data found!"
 }
 
-},{}],595:[function(require,module,exports){
+},{}],599:[function(require,module,exports){
 arguments[4][171][0].apply(exports,arguments)
-},{"buffer":163,"dup":171}],596:[function(require,module,exports){
+},{"buffer":163,"dup":171}],600:[function(require,module,exports){
 arguments[4][172][0].apply(exports,arguments)
-},{"./aes":595,"./ghash":600,"buffer":163,"buffer-xor":613,"cipher-base":609,"dup":172,"inherits":611}],597:[function(require,module,exports){
+},{"./aes":599,"./ghash":604,"buffer":163,"buffer-xor":617,"cipher-base":613,"dup":172,"inherits":615}],601:[function(require,module,exports){
 arguments[4][173][0].apply(exports,arguments)
-},{"./decrypter":598,"./encrypter":599,"./modes":601,"dup":173}],598:[function(require,module,exports){
+},{"./decrypter":602,"./encrypter":603,"./modes":605,"dup":173}],602:[function(require,module,exports){
 arguments[4][174][0].apply(exports,arguments)
-},{"./aes":595,"./authCipher":596,"./modes":601,"./modes/cbc":602,"./modes/cfb":603,"./modes/cfb1":604,"./modes/cfb8":605,"./modes/ctr":606,"./modes/ecb":607,"./modes/ofb":608,"./streamCipher":612,"buffer":163,"cipher-base":609,"dup":174,"evp_bytestokey":610,"inherits":611}],599:[function(require,module,exports){
+},{"./aes":599,"./authCipher":600,"./modes":605,"./modes/cbc":606,"./modes/cfb":607,"./modes/cfb1":608,"./modes/cfb8":609,"./modes/ctr":610,"./modes/ecb":611,"./modes/ofb":612,"./streamCipher":616,"buffer":163,"cipher-base":613,"dup":174,"evp_bytestokey":614,"inherits":615}],603:[function(require,module,exports){
 arguments[4][175][0].apply(exports,arguments)
-},{"./aes":595,"./authCipher":596,"./modes":601,"./modes/cbc":602,"./modes/cfb":603,"./modes/cfb1":604,"./modes/cfb8":605,"./modes/ctr":606,"./modes/ecb":607,"./modes/ofb":608,"./streamCipher":612,"buffer":163,"cipher-base":609,"dup":175,"evp_bytestokey":610,"inherits":611}],600:[function(require,module,exports){
+},{"./aes":599,"./authCipher":600,"./modes":605,"./modes/cbc":606,"./modes/cfb":607,"./modes/cfb1":608,"./modes/cfb8":609,"./modes/ctr":610,"./modes/ecb":611,"./modes/ofb":612,"./streamCipher":616,"buffer":163,"cipher-base":613,"dup":175,"evp_bytestokey":614,"inherits":615}],604:[function(require,module,exports){
 arguments[4][176][0].apply(exports,arguments)
-},{"buffer":163,"dup":176}],601:[function(require,module,exports){
+},{"buffer":163,"dup":176}],605:[function(require,module,exports){
 arguments[4][177][0].apply(exports,arguments)
-},{"dup":177}],602:[function(require,module,exports){
+},{"dup":177}],606:[function(require,module,exports){
 arguments[4][178][0].apply(exports,arguments)
-},{"buffer-xor":613,"dup":178}],603:[function(require,module,exports){
+},{"buffer-xor":617,"dup":178}],607:[function(require,module,exports){
 arguments[4][179][0].apply(exports,arguments)
-},{"buffer":163,"buffer-xor":613,"dup":179}],604:[function(require,module,exports){
+},{"buffer":163,"buffer-xor":617,"dup":179}],608:[function(require,module,exports){
 arguments[4][180][0].apply(exports,arguments)
-},{"buffer":163,"dup":180}],605:[function(require,module,exports){
+},{"buffer":163,"dup":180}],609:[function(require,module,exports){
 arguments[4][181][0].apply(exports,arguments)
-},{"buffer":163,"dup":181}],606:[function(require,module,exports){
+},{"buffer":163,"dup":181}],610:[function(require,module,exports){
 arguments[4][182][0].apply(exports,arguments)
-},{"buffer":163,"buffer-xor":613,"dup":182}],607:[function(require,module,exports){
+},{"buffer":163,"buffer-xor":617,"dup":182}],611:[function(require,module,exports){
 arguments[4][183][0].apply(exports,arguments)
-},{"dup":183}],608:[function(require,module,exports){
+},{"dup":183}],612:[function(require,module,exports){
 arguments[4][184][0].apply(exports,arguments)
-},{"buffer":163,"buffer-xor":613,"dup":184}],609:[function(require,module,exports){
+},{"buffer":163,"buffer-xor":617,"dup":184}],613:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"buffer":163,"dup":12,"inherits":611,"stream":386,"string_decoder":392}],610:[function(require,module,exports){
+},{"buffer":163,"dup":12,"inherits":615,"stream":386,"string_decoder":392}],614:[function(require,module,exports){
 arguments[4][198][0].apply(exports,arguments)
-},{"buffer":163,"create-hash/md5":618,"dup":198}],611:[function(require,module,exports){
+},{"buffer":163,"create-hash/md5":622,"dup":198}],615:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],612:[function(require,module,exports){
+},{"dup":13}],616:[function(require,module,exports){
 arguments[4][187][0].apply(exports,arguments)
-},{"./aes":595,"buffer":163,"cipher-base":609,"dup":187,"inherits":611}],613:[function(require,module,exports){
+},{"./aes":599,"buffer":163,"cipher-base":613,"dup":187,"inherits":615}],617:[function(require,module,exports){
 arguments[4][185][0].apply(exports,arguments)
-},{"buffer":163,"dup":185}],614:[function(require,module,exports){
+},{"buffer":163,"dup":185}],618:[function(require,module,exports){
 (function (Buffer){
 var base58 = require('bs58')
 var createHash = require('create-hash')
@@ -106012,47 +106114,47 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bs58":615,"buffer":163,"create-hash":616}],615:[function(require,module,exports){
+},{"bs58":619,"buffer":163,"create-hash":620}],619:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],616:[function(require,module,exports){
+},{"dup":8}],620:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"./md5":618,"buffer":163,"cipher-base":619,"dup":9,"inherits":620,"ripemd160":621,"sha.js":623}],617:[function(require,module,exports){
+},{"./md5":622,"buffer":163,"cipher-base":623,"dup":9,"inherits":624,"ripemd160":625,"sha.js":627}],621:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"buffer":163,"dup":10}],618:[function(require,module,exports){
+},{"buffer":163,"dup":10}],622:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"./helpers":617,"dup":11}],619:[function(require,module,exports){
+},{"./helpers":621,"dup":11}],623:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"buffer":163,"dup":12,"inherits":620,"stream":386,"string_decoder":392}],620:[function(require,module,exports){
+},{"buffer":163,"dup":12,"inherits":624,"stream":386,"string_decoder":392}],624:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],621:[function(require,module,exports){
+},{"dup":13}],625:[function(require,module,exports){
 arguments[4][14][0].apply(exports,arguments)
-},{"buffer":163,"dup":14}],622:[function(require,module,exports){
+},{"buffer":163,"dup":14}],626:[function(require,module,exports){
 arguments[4][15][0].apply(exports,arguments)
-},{"buffer":163,"dup":15}],623:[function(require,module,exports){
+},{"buffer":163,"dup":15}],627:[function(require,module,exports){
 arguments[4][16][0].apply(exports,arguments)
-},{"./sha":624,"./sha1":625,"./sha224":626,"./sha256":627,"./sha384":628,"./sha512":629,"dup":16}],624:[function(require,module,exports){
+},{"./sha":628,"./sha1":629,"./sha224":630,"./sha256":631,"./sha384":632,"./sha512":633,"dup":16}],628:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
-},{"./hash":622,"buffer":163,"dup":17,"inherits":620}],625:[function(require,module,exports){
+},{"./hash":626,"buffer":163,"dup":17,"inherits":624}],629:[function(require,module,exports){
 arguments[4][18][0].apply(exports,arguments)
-},{"./hash":622,"buffer":163,"dup":18,"inherits":620}],626:[function(require,module,exports){
+},{"./hash":626,"buffer":163,"dup":18,"inherits":624}],630:[function(require,module,exports){
 arguments[4][19][0].apply(exports,arguments)
-},{"./hash":622,"./sha256":627,"buffer":163,"dup":19,"inherits":620}],627:[function(require,module,exports){
+},{"./hash":626,"./sha256":631,"buffer":163,"dup":19,"inherits":624}],631:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
-},{"./hash":622,"buffer":163,"dup":20,"inherits":620}],628:[function(require,module,exports){
+},{"./hash":626,"buffer":163,"dup":20,"inherits":624}],632:[function(require,module,exports){
 arguments[4][21][0].apply(exports,arguments)
-},{"./hash":622,"./sha512":629,"buffer":163,"dup":21,"inherits":620}],629:[function(require,module,exports){
+},{"./hash":626,"./sha512":633,"buffer":163,"dup":21,"inherits":624}],633:[function(require,module,exports){
 arguments[4][22][0].apply(exports,arguments)
-},{"./hash":622,"buffer":163,"dup":22,"inherits":620}],630:[function(require,module,exports){
+},{"./hash":626,"buffer":163,"dup":22,"inherits":624}],634:[function(require,module,exports){
 arguments[4][25][0].apply(exports,arguments)
-},{"./point":634,"assert":148,"bigi":593,"dup":25}],631:[function(require,module,exports){
+},{"./point":638,"assert":148,"bigi":597,"dup":25}],635:[function(require,module,exports){
 arguments[4][26][0].apply(exports,arguments)
-},{"dup":26}],632:[function(require,module,exports){
+},{"dup":26}],636:[function(require,module,exports){
 arguments[4][27][0].apply(exports,arguments)
-},{"./curve":630,"./names":633,"./point":634,"dup":27}],633:[function(require,module,exports){
+},{"./curve":634,"./names":637,"./point":638,"dup":27}],637:[function(require,module,exports){
 arguments[4][28][0].apply(exports,arguments)
-},{"./curve":630,"./curves":631,"bigi":593,"dup":28}],634:[function(require,module,exports){
+},{"./curve":634,"./curves":635,"bigi":597,"dup":28}],638:[function(require,module,exports){
 arguments[4][29][0].apply(exports,arguments)
-},{"assert":148,"bigi":593,"buffer":163,"dup":29}],635:[function(require,module,exports){
+},{"assert":148,"bigi":597,"buffer":163,"dup":29}],639:[function(require,module,exports){
 (function (Buffer){
 var pbkdf2Sync = require('pbkdf2').pbkdf2Sync
 
@@ -106235,69 +106337,69 @@ function arraycopy (src, srcPos, dest, destPos, length) {
 module.exports = scrypt
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":163,"pbkdf2":636}],636:[function(require,module,exports){
+},{"buffer":163,"pbkdf2":640}],640:[function(require,module,exports){
 arguments[4][314][0].apply(exports,arguments)
-},{"buffer":163,"create-hmac":637,"dup":314}],637:[function(require,module,exports){
+},{"buffer":163,"create-hmac":641,"dup":314}],641:[function(require,module,exports){
 arguments[4][23][0].apply(exports,arguments)
-},{"buffer":163,"create-hash/browser":616,"dup":23,"inherits":638,"stream":386}],638:[function(require,module,exports){
+},{"buffer":163,"create-hash/browser":620,"dup":23,"inherits":642,"stream":386}],642:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],639:[function(require,module,exports){
+},{"dup":13}],643:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
-},{"../package.json":642,"dup":3}],640:[function(require,module,exports){
+},{"../package.json":646,"dup":3}],644:[function(require,module,exports){
 arguments[4][4][0].apply(exports,arguments)
-},{"./bigi":639,"assert":148,"buffer":163,"dup":4}],641:[function(require,module,exports){
+},{"./bigi":643,"assert":148,"buffer":163,"dup":4}],645:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"./bigi":639,"./convert":640,"dup":5}],642:[function(require,module,exports){
+},{"./bigi":643,"./convert":644,"dup":5}],646:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],643:[function(require,module,exports){
+},{"dup":6}],647:[function(require,module,exports){
 arguments[4][7][0].apply(exports,arguments)
-},{"bs58":644,"buffer":163,"create-hash":645,"dup":7}],644:[function(require,module,exports){
+},{"bs58":648,"buffer":163,"create-hash":649,"dup":7}],648:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],645:[function(require,module,exports){
+},{"dup":8}],649:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"./md5":647,"buffer":163,"cipher-base":648,"dup":9,"inherits":649,"ripemd160":650,"sha.js":652}],646:[function(require,module,exports){
+},{"./md5":651,"buffer":163,"cipher-base":652,"dup":9,"inherits":653,"ripemd160":654,"sha.js":656}],650:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"buffer":163,"dup":10}],647:[function(require,module,exports){
+},{"buffer":163,"dup":10}],651:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"./helpers":646,"dup":11}],648:[function(require,module,exports){
+},{"./helpers":650,"dup":11}],652:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"buffer":163,"dup":12,"inherits":649,"stream":386,"string_decoder":392}],649:[function(require,module,exports){
+},{"buffer":163,"dup":12,"inherits":653,"stream":386,"string_decoder":392}],653:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],650:[function(require,module,exports){
+},{"dup":13}],654:[function(require,module,exports){
 arguments[4][14][0].apply(exports,arguments)
-},{"buffer":163,"dup":14}],651:[function(require,module,exports){
+},{"buffer":163,"dup":14}],655:[function(require,module,exports){
 arguments[4][15][0].apply(exports,arguments)
-},{"buffer":163,"dup":15}],652:[function(require,module,exports){
+},{"buffer":163,"dup":15}],656:[function(require,module,exports){
 arguments[4][16][0].apply(exports,arguments)
-},{"./sha":653,"./sha1":654,"./sha224":655,"./sha256":656,"./sha384":657,"./sha512":658,"dup":16}],653:[function(require,module,exports){
+},{"./sha":657,"./sha1":658,"./sha224":659,"./sha256":660,"./sha384":661,"./sha512":662,"dup":16}],657:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
-},{"./hash":651,"buffer":163,"dup":17,"inherits":649}],654:[function(require,module,exports){
+},{"./hash":655,"buffer":163,"dup":17,"inherits":653}],658:[function(require,module,exports){
 arguments[4][18][0].apply(exports,arguments)
-},{"./hash":651,"buffer":163,"dup":18,"inherits":649}],655:[function(require,module,exports){
+},{"./hash":655,"buffer":163,"dup":18,"inherits":653}],659:[function(require,module,exports){
 arguments[4][19][0].apply(exports,arguments)
-},{"./hash":651,"./sha256":656,"buffer":163,"dup":19,"inherits":649}],656:[function(require,module,exports){
+},{"./hash":655,"./sha256":660,"buffer":163,"dup":19,"inherits":653}],660:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
-},{"./hash":651,"buffer":163,"dup":20,"inherits":649}],657:[function(require,module,exports){
+},{"./hash":655,"buffer":163,"dup":20,"inherits":653}],661:[function(require,module,exports){
 arguments[4][21][0].apply(exports,arguments)
-},{"./hash":651,"./sha512":658,"buffer":163,"dup":21,"inherits":649}],658:[function(require,module,exports){
+},{"./hash":655,"./sha512":662,"buffer":163,"dup":21,"inherits":653}],662:[function(require,module,exports){
 arguments[4][22][0].apply(exports,arguments)
-},{"./hash":651,"buffer":163,"dup":22,"inherits":649}],659:[function(require,module,exports){
+},{"./hash":655,"buffer":163,"dup":22,"inherits":653}],663:[function(require,module,exports){
 arguments[4][23][0].apply(exports,arguments)
-},{"buffer":163,"create-hash/browser":645,"dup":23,"inherits":660,"stream":386}],660:[function(require,module,exports){
+},{"buffer":163,"create-hash/browser":649,"dup":23,"inherits":664,"stream":386}],664:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],661:[function(require,module,exports){
+},{"dup":13}],665:[function(require,module,exports){
 arguments[4][25][0].apply(exports,arguments)
-},{"./point":665,"assert":148,"bigi":641,"dup":25}],662:[function(require,module,exports){
+},{"./point":669,"assert":148,"bigi":645,"dup":25}],666:[function(require,module,exports){
 arguments[4][26][0].apply(exports,arguments)
-},{"dup":26}],663:[function(require,module,exports){
+},{"dup":26}],667:[function(require,module,exports){
 arguments[4][27][0].apply(exports,arguments)
-},{"./curve":661,"./names":664,"./point":665,"dup":27}],664:[function(require,module,exports){
+},{"./curve":665,"./names":668,"./point":669,"dup":27}],668:[function(require,module,exports){
 arguments[4][28][0].apply(exports,arguments)
-},{"./curve":661,"./curves":662,"bigi":641,"dup":28}],665:[function(require,module,exports){
+},{"./curve":665,"./curves":666,"bigi":645,"dup":28}],669:[function(require,module,exports){
 arguments[4][29][0].apply(exports,arguments)
-},{"assert":148,"bigi":641,"buffer":163,"dup":29}],666:[function(require,module,exports){
+},{"assert":148,"bigi":645,"buffer":163,"dup":29}],670:[function(require,module,exports){
 arguments[4][30][0].apply(exports,arguments)
-},{"_process":368,"buffer":163,"dup":30}],667:[function(require,module,exports){
+},{"_process":368,"buffer":163,"dup":30}],671:[function(require,module,exports){
 (function (Buffer){
 function getFunctionName (fn) {
   return fn.name || fn.toString().match(/function (.*?)\s*\(/)[1]
@@ -106548,45 +106650,45 @@ module.exports = typeforce
 module.exports.compile = compile
 
 }).call(this,{"isBuffer":require("../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
-},{"../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364}],668:[function(require,module,exports){
+},{"../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364}],672:[function(require,module,exports){
 arguments[4][33][0].apply(exports,arguments)
-},{"./networks":680,"./scripts":683,"assert":148,"bs58check":643,"buffer":163,"dup":33,"typeforce":667}],669:[function(require,module,exports){
+},{"./networks":684,"./scripts":687,"assert":148,"bs58check":647,"buffer":163,"dup":33,"typeforce":671}],673:[function(require,module,exports){
 arguments[4][34][0].apply(exports,arguments)
-},{"bs58check":643,"dup":34}],670:[function(require,module,exports){
+},{"bs58check":647,"dup":34}],674:[function(require,module,exports){
 arguments[4][35][0].apply(exports,arguments)
-},{"./bufferutils":671,"./crypto":672,"./transaction":684,"assert":148,"buffer":163,"dup":35}],671:[function(require,module,exports){
+},{"./bufferutils":675,"./crypto":676,"./transaction":688,"assert":148,"buffer":163,"dup":35}],675:[function(require,module,exports){
 arguments[4][36][0].apply(exports,arguments)
-},{"./opcodes":681,"assert":148,"buffer":163,"dup":36}],672:[function(require,module,exports){
+},{"./opcodes":685,"assert":148,"buffer":163,"dup":36}],676:[function(require,module,exports){
 arguments[4][37][0].apply(exports,arguments)
-},{"create-hash":645,"create-hmac":659,"dup":37}],673:[function(require,module,exports){
+},{"create-hash":649,"create-hmac":663,"dup":37}],677:[function(require,module,exports){
 arguments[4][38][0].apply(exports,arguments)
-},{"./ecsignature":676,"assert":148,"bigi":641,"buffer":163,"create-hmac":659,"dup":38,"typeforce":667}],674:[function(require,module,exports){
+},{"./ecsignature":680,"assert":148,"bigi":645,"buffer":163,"create-hmac":663,"dup":38,"typeforce":671}],678:[function(require,module,exports){
 arguments[4][39][0].apply(exports,arguments)
-},{"./ecdsa":673,"./ecpubkey":675,"./networks":680,"assert":148,"bigi":641,"bs58check":643,"buffer":163,"dup":39,"ecurve":663,"randombytes":666,"typeforce":667}],675:[function(require,module,exports){
+},{"./ecdsa":677,"./ecpubkey":679,"./networks":684,"assert":148,"bigi":645,"bs58check":647,"buffer":163,"dup":39,"ecurve":667,"randombytes":670,"typeforce":671}],679:[function(require,module,exports){
 arguments[4][40][0].apply(exports,arguments)
-},{"./address":668,"./crypto":672,"./ecdsa":673,"./networks":680,"buffer":163,"dup":40,"ecurve":663,"typeforce":667}],676:[function(require,module,exports){
+},{"./address":672,"./crypto":676,"./ecdsa":677,"./networks":684,"buffer":163,"dup":40,"ecurve":667,"typeforce":671}],680:[function(require,module,exports){
 arguments[4][41][0].apply(exports,arguments)
-},{"assert":148,"bigi":641,"buffer":163,"dup":41,"typeforce":667}],677:[function(require,module,exports){
+},{"assert":148,"bigi":645,"buffer":163,"dup":41,"typeforce":671}],681:[function(require,module,exports){
 arguments[4][42][0].apply(exports,arguments)
-},{"./crypto":672,"./eckey":674,"./ecpubkey":675,"./networks":680,"assert":148,"bigi":641,"bs58check":643,"buffer":163,"create-hmac":659,"dup":42,"ecurve":663,"typeforce":667}],678:[function(require,module,exports){
+},{"./crypto":676,"./eckey":678,"./ecpubkey":679,"./networks":684,"assert":148,"bigi":645,"bs58check":647,"buffer":163,"create-hmac":663,"dup":42,"ecurve":667,"typeforce":671}],682:[function(require,module,exports){
 arguments[4][43][0].apply(exports,arguments)
-},{"./address":668,"./base58check":669,"./block":670,"./bufferutils":671,"./crypto":672,"./ecdsa":673,"./eckey":674,"./ecpubkey":675,"./ecsignature":676,"./hdnode":677,"./message":679,"./networks":680,"./opcodes":681,"./script":682,"./scripts":683,"./transaction":684,"./transaction_builder":685,"./wallet":686,"dup":43}],679:[function(require,module,exports){
+},{"./address":672,"./base58check":673,"./block":674,"./bufferutils":675,"./crypto":676,"./ecdsa":677,"./eckey":678,"./ecpubkey":679,"./ecsignature":680,"./hdnode":681,"./message":683,"./networks":684,"./opcodes":685,"./script":686,"./scripts":687,"./transaction":688,"./transaction_builder":689,"./wallet":690,"dup":43}],683:[function(require,module,exports){
 arguments[4][44][0].apply(exports,arguments)
-},{"./bufferutils":671,"./crypto":672,"./ecdsa":673,"./ecpubkey":675,"./ecsignature":676,"./networks":680,"bigi":641,"buffer":163,"dup":44,"ecurve":663}],680:[function(require,module,exports){
+},{"./bufferutils":675,"./crypto":676,"./ecdsa":677,"./ecpubkey":679,"./ecsignature":680,"./networks":684,"bigi":645,"buffer":163,"dup":44,"ecurve":667}],684:[function(require,module,exports){
 arguments[4][45][0].apply(exports,arguments)
-},{"dup":45}],681:[function(require,module,exports){
+},{"dup":45}],685:[function(require,module,exports){
 arguments[4][46][0].apply(exports,arguments)
-},{"dup":46}],682:[function(require,module,exports){
+},{"dup":46}],686:[function(require,module,exports){
 arguments[4][47][0].apply(exports,arguments)
-},{"./bufferutils":671,"./crypto":672,"./opcodes":681,"assert":148,"buffer":163,"dup":47,"typeforce":667}],683:[function(require,module,exports){
+},{"./bufferutils":675,"./crypto":676,"./opcodes":685,"assert":148,"buffer":163,"dup":47,"typeforce":671}],687:[function(require,module,exports){
 arguments[4][48][0].apply(exports,arguments)
-},{"../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"./ecsignature":676,"./opcodes":681,"./script":682,"assert":148,"dup":48,"ecurve":663,"typeforce":667}],684:[function(require,module,exports){
+},{"../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"./ecsignature":680,"./opcodes":685,"./script":686,"assert":148,"dup":48,"ecurve":667,"typeforce":671}],688:[function(require,module,exports){
 arguments[4][49][0].apply(exports,arguments)
-},{"./address":668,"./bufferutils":671,"./crypto":672,"./ecsignature":676,"./opcodes":681,"./script":682,"./scripts":683,"assert":148,"buffer":163,"dup":49,"typeforce":667}],685:[function(require,module,exports){
+},{"./address":672,"./bufferutils":675,"./crypto":676,"./ecsignature":680,"./opcodes":685,"./script":686,"./scripts":687,"assert":148,"buffer":163,"dup":49,"typeforce":671}],689:[function(require,module,exports){
 arguments[4][50][0].apply(exports,arguments)
-},{"./ecpubkey":675,"./ecsignature":676,"./opcodes":681,"./script":682,"./scripts":683,"./transaction":684,"assert":148,"buffer":163,"dup":50}],686:[function(require,module,exports){
+},{"./ecpubkey":679,"./ecsignature":680,"./opcodes":685,"./script":686,"./scripts":687,"./transaction":688,"assert":148,"buffer":163,"dup":50}],690:[function(require,module,exports){
 arguments[4][51][0].apply(exports,arguments)
-},{"./address":668,"./bufferutils":671,"./hdnode":677,"./networks":680,"./script":682,"./transaction_builder":685,"assert":148,"buffer":163,"dup":51,"randombytes":666,"typeforce":667}],687:[function(require,module,exports){
+},{"./address":672,"./bufferutils":675,"./hdnode":681,"./networks":684,"./script":686,"./transaction_builder":689,"assert":148,"buffer":163,"dup":51,"randombytes":670,"typeforce":671}],691:[function(require,module,exports){
 var assert = require('assert')
 var cs = require('coinstring')
 var ECKey = require('eckey')
@@ -106667,7 +106769,7 @@ CoinKey.addressToHash = function (address) {
 
 module.exports = CoinKey
 
-},{"./util":688,"assert":148,"coinstring":689,"eckey":704,"inherits":714,"secure-random":715}],688:[function(require,module,exports){
+},{"./util":692,"assert":148,"coinstring":693,"eckey":708,"inherits":718,"secure-random":719}],692:[function(require,module,exports){
 (function (Buffer){
 // poor man's clone
 function clone (obj) {
@@ -106701,37 +106803,37 @@ module.exports = {
 }
 
 }).call(this,{"isBuffer":require("../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
-},{"../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364}],689:[function(require,module,exports){
-arguments[4][614][0].apply(exports,arguments)
-},{"bs58":690,"buffer":163,"create-hash":691,"dup":614}],690:[function(require,module,exports){
+},{"../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364}],693:[function(require,module,exports){
+arguments[4][618][0].apply(exports,arguments)
+},{"bs58":694,"buffer":163,"create-hash":695,"dup":618}],694:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],691:[function(require,module,exports){
+},{"dup":8}],695:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"./md5":693,"buffer":163,"cipher-base":694,"dup":9,"inherits":714,"ripemd160":695,"sha.js":697}],692:[function(require,module,exports){
+},{"./md5":697,"buffer":163,"cipher-base":698,"dup":9,"inherits":718,"ripemd160":699,"sha.js":701}],696:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"buffer":163,"dup":10}],693:[function(require,module,exports){
+},{"buffer":163,"dup":10}],697:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"./helpers":692,"dup":11}],694:[function(require,module,exports){
+},{"./helpers":696,"dup":11}],698:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"buffer":163,"dup":12,"inherits":714,"stream":386,"string_decoder":392}],695:[function(require,module,exports){
+},{"buffer":163,"dup":12,"inherits":718,"stream":386,"string_decoder":392}],699:[function(require,module,exports){
 arguments[4][14][0].apply(exports,arguments)
-},{"buffer":163,"dup":14}],696:[function(require,module,exports){
+},{"buffer":163,"dup":14}],700:[function(require,module,exports){
 arguments[4][15][0].apply(exports,arguments)
-},{"buffer":163,"dup":15}],697:[function(require,module,exports){
+},{"buffer":163,"dup":15}],701:[function(require,module,exports){
 arguments[4][16][0].apply(exports,arguments)
-},{"./sha":698,"./sha1":699,"./sha224":700,"./sha256":701,"./sha384":702,"./sha512":703,"dup":16}],698:[function(require,module,exports){
+},{"./sha":702,"./sha1":703,"./sha224":704,"./sha256":705,"./sha384":706,"./sha512":707,"dup":16}],702:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
-},{"./hash":696,"buffer":163,"dup":17,"inherits":714}],699:[function(require,module,exports){
+},{"./hash":700,"buffer":163,"dup":17,"inherits":718}],703:[function(require,module,exports){
 arguments[4][18][0].apply(exports,arguments)
-},{"./hash":696,"buffer":163,"dup":18,"inherits":714}],700:[function(require,module,exports){
+},{"./hash":700,"buffer":163,"dup":18,"inherits":718}],704:[function(require,module,exports){
 arguments[4][19][0].apply(exports,arguments)
-},{"./hash":696,"./sha256":701,"buffer":163,"dup":19,"inherits":714}],701:[function(require,module,exports){
+},{"./hash":700,"./sha256":705,"buffer":163,"dup":19,"inherits":718}],705:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
-},{"./hash":696,"buffer":163,"dup":20,"inherits":714}],702:[function(require,module,exports){
+},{"./hash":700,"buffer":163,"dup":20,"inherits":718}],706:[function(require,module,exports){
 arguments[4][21][0].apply(exports,arguments)
-},{"./hash":696,"./sha512":703,"buffer":163,"dup":21,"inherits":714}],703:[function(require,module,exports){
+},{"./hash":700,"./sha512":707,"buffer":163,"dup":21,"inherits":718}],707:[function(require,module,exports){
 arguments[4][22][0].apply(exports,arguments)
-},{"./hash":696,"buffer":163,"dup":22,"inherits":714}],704:[function(require,module,exports){
+},{"./hash":700,"buffer":163,"dup":22,"inherits":718}],708:[function(require,module,exports){
 (function (Buffer){
 var crypto = require('crypto')
 
@@ -106855,13 +106957,13 @@ module.exports = ECKey
 
 
 }).call(this,require("buffer").Buffer)
-},{"bigi":707,"buffer":163,"crypto":169,"ecurve":711}],705:[function(require,module,exports){
+},{"bigi":711,"buffer":163,"crypto":169,"ecurve":715}],709:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
-},{"../package.json":708,"dup":3}],706:[function(require,module,exports){
+},{"../package.json":712,"dup":3}],710:[function(require,module,exports){
 arguments[4][4][0].apply(exports,arguments)
-},{"./bigi":705,"assert":148,"buffer":163,"dup":4}],707:[function(require,module,exports){
+},{"./bigi":709,"assert":148,"buffer":163,"dup":4}],711:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"./bigi":705,"./convert":706,"dup":5}],708:[function(require,module,exports){
+},{"./bigi":709,"./convert":710,"dup":5}],712:[function(require,module,exports){
 module.exports={
   "name": "bigi",
   "version": "1.4.1",
@@ -106957,19 +107059,19 @@ module.exports={
   "readme": "ERROR: No README data found!"
 }
 
-},{}],709:[function(require,module,exports){
+},{}],713:[function(require,module,exports){
 arguments[4][25][0].apply(exports,arguments)
-},{"./point":713,"assert":148,"bigi":707,"dup":25}],710:[function(require,module,exports){
+},{"./point":717,"assert":148,"bigi":711,"dup":25}],714:[function(require,module,exports){
 arguments[4][26][0].apply(exports,arguments)
-},{"dup":26}],711:[function(require,module,exports){
+},{"dup":26}],715:[function(require,module,exports){
 arguments[4][27][0].apply(exports,arguments)
-},{"./curve":709,"./names":712,"./point":713,"dup":27}],712:[function(require,module,exports){
+},{"./curve":713,"./names":716,"./point":717,"dup":27}],716:[function(require,module,exports){
 arguments[4][28][0].apply(exports,arguments)
-},{"./curve":709,"./curves":710,"bigi":707,"dup":28}],713:[function(require,module,exports){
+},{"./curve":713,"./curves":714,"bigi":711,"dup":28}],717:[function(require,module,exports){
 arguments[4][29][0].apply(exports,arguments)
-},{"assert":148,"bigi":707,"buffer":163,"dup":29}],714:[function(require,module,exports){
+},{"assert":148,"bigi":711,"buffer":163,"dup":29}],718:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],715:[function(require,module,exports){
+},{"dup":13}],719:[function(require,module,exports){
 (function (process,Buffer){
 !function(globals){
 'use strict'
@@ -107051,39 +107153,39 @@ secureRandom.randomBuffer = function(byteCount) {
 }(this);
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":368,"buffer":163,"crypto":149}],716:[function(require,module,exports){
-arguments[4][614][0].apply(exports,arguments)
-},{"bs58":717,"buffer":163,"create-hash":718,"dup":614}],717:[function(require,module,exports){
+},{"_process":368,"buffer":163,"crypto":149}],720:[function(require,module,exports){
+arguments[4][618][0].apply(exports,arguments)
+},{"bs58":721,"buffer":163,"create-hash":722,"dup":618}],721:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],718:[function(require,module,exports){
+},{"dup":8}],722:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"./md5":720,"buffer":163,"cipher-base":721,"dup":9,"inherits":722,"ripemd160":723,"sha.js":725}],719:[function(require,module,exports){
+},{"./md5":724,"buffer":163,"cipher-base":725,"dup":9,"inherits":726,"ripemd160":727,"sha.js":729}],723:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"buffer":163,"dup":10}],720:[function(require,module,exports){
+},{"buffer":163,"dup":10}],724:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"./helpers":719,"dup":11}],721:[function(require,module,exports){
+},{"./helpers":723,"dup":11}],725:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"buffer":163,"dup":12,"inherits":722,"stream":386,"string_decoder":392}],722:[function(require,module,exports){
+},{"buffer":163,"dup":12,"inherits":726,"stream":386,"string_decoder":392}],726:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],723:[function(require,module,exports){
+},{"dup":13}],727:[function(require,module,exports){
 arguments[4][14][0].apply(exports,arguments)
-},{"buffer":163,"dup":14}],724:[function(require,module,exports){
+},{"buffer":163,"dup":14}],728:[function(require,module,exports){
 arguments[4][15][0].apply(exports,arguments)
-},{"buffer":163,"dup":15}],725:[function(require,module,exports){
+},{"buffer":163,"dup":15}],729:[function(require,module,exports){
 arguments[4][16][0].apply(exports,arguments)
-},{"./sha":726,"./sha1":727,"./sha224":728,"./sha256":729,"./sha384":730,"./sha512":731,"dup":16}],726:[function(require,module,exports){
+},{"./sha":730,"./sha1":731,"./sha224":732,"./sha256":733,"./sha384":734,"./sha512":735,"dup":16}],730:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
-},{"./hash":724,"buffer":163,"dup":17,"inherits":722}],727:[function(require,module,exports){
+},{"./hash":728,"buffer":163,"dup":17,"inherits":726}],731:[function(require,module,exports){
 arguments[4][18][0].apply(exports,arguments)
-},{"./hash":724,"buffer":163,"dup":18,"inherits":722}],728:[function(require,module,exports){
+},{"./hash":728,"buffer":163,"dup":18,"inherits":726}],732:[function(require,module,exports){
 arguments[4][19][0].apply(exports,arguments)
-},{"./hash":724,"./sha256":729,"buffer":163,"dup":19,"inherits":722}],729:[function(require,module,exports){
+},{"./hash":728,"./sha256":733,"buffer":163,"dup":19,"inherits":726}],733:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
-},{"./hash":724,"buffer":163,"dup":20,"inherits":722}],730:[function(require,module,exports){
+},{"./hash":728,"buffer":163,"dup":20,"inherits":726}],734:[function(require,module,exports){
 arguments[4][21][0].apply(exports,arguments)
-},{"./hash":724,"./sha512":731,"buffer":163,"dup":21,"inherits":722}],731:[function(require,module,exports){
+},{"./hash":728,"./sha512":735,"buffer":163,"dup":21,"inherits":726}],735:[function(require,module,exports){
 arguments[4][22][0].apply(exports,arguments)
-},{"./hash":724,"buffer":163,"dup":22,"inherits":722}],732:[function(require,module,exports){
+},{"./hash":728,"buffer":163,"dup":22,"inherits":726}],736:[function(require,module,exports){
 (function (process){
 'use strict'
 var crypto = require('crypto');
@@ -107146,7 +107248,7 @@ var sha256ripe160 = exports.sha256ripe160 = function sha256ripe160(message, opti
 exports.sha256ripemd160 = exports.sha256ripe160;
 
 }).call(this,require('_process'))
-},{"_process":368,"binstring":733,"crypto":169,"ripemd160":734}],733:[function(require,module,exports){
+},{"_process":368,"binstring":737,"crypto":169,"ripemd160":738}],737:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 
@@ -107200,7 +107302,7 @@ var binString = module.exports = function binString(data, options) {
 };
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":163}],734:[function(require,module,exports){
+},{"buffer":163}],738:[function(require,module,exports){
 (function (Buffer){
 
 module.exports = ripemd160
@@ -107409,193 +107511,193 @@ function ripemd160(message) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":163}],735:[function(require,module,exports){
+},{"buffer":163}],739:[function(require,module,exports){
 arguments[4][52][0].apply(exports,arguments)
-},{"./lib/cookies":737,"./lib/helpers":740,"./request":827,"dup":52,"extend":759}],736:[function(require,module,exports){
+},{"./lib/cookies":741,"./lib/helpers":744,"./request":831,"dup":52,"extend":763}],740:[function(require,module,exports){
 arguments[4][53][0].apply(exports,arguments)
-},{"./helpers":740,"caseless":756,"dup":53,"node-uuid":811}],737:[function(require,module,exports){
+},{"./helpers":744,"caseless":760,"dup":53,"node-uuid":815}],741:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
-},{"dup":54,"tough-cookie":819}],738:[function(require,module,exports){
+},{"dup":54,"tough-cookie":823}],742:[function(require,module,exports){
 arguments[4][55][0].apply(exports,arguments)
-},{"_process":368,"dup":55}],739:[function(require,module,exports){
+},{"_process":368,"dup":55}],743:[function(require,module,exports){
 arguments[4][56][0].apply(exports,arguments)
-},{"dup":56,"fs":147,"har-validator":766,"querystring":372,"util":396}],740:[function(require,module,exports){
+},{"dup":56,"fs":147,"har-validator":770,"querystring":372,"util":396}],744:[function(require,module,exports){
 arguments[4][57][0].apply(exports,arguments)
-},{"_process":368,"buffer":163,"crypto":169,"dup":57,"json-stringify-safe":807}],741:[function(require,module,exports){
+},{"_process":368,"buffer":163,"crypto":169,"dup":57,"json-stringify-safe":811}],745:[function(require,module,exports){
 arguments[4][58][0].apply(exports,arguments)
-},{"buffer":163,"combined-stream":757,"dup":58,"isstream":806,"node-uuid":811}],742:[function(require,module,exports){
+},{"buffer":163,"combined-stream":761,"dup":58,"isstream":810,"node-uuid":815}],746:[function(require,module,exports){
 arguments[4][59][0].apply(exports,arguments)
-},{"buffer":163,"caseless":756,"crypto":169,"dup":59,"node-uuid":811,"oauth-sign":812,"qs":813,"url":393}],743:[function(require,module,exports){
+},{"buffer":163,"caseless":760,"crypto":169,"dup":59,"node-uuid":815,"oauth-sign":816,"qs":817,"url":393}],747:[function(require,module,exports){
 arguments[4][60][0].apply(exports,arguments)
-},{"dup":60,"qs":813,"querystring":372}],744:[function(require,module,exports){
+},{"dup":60,"qs":817,"querystring":372}],748:[function(require,module,exports){
 arguments[4][61][0].apply(exports,arguments)
-},{"dup":61,"url":393}],745:[function(require,module,exports){
+},{"dup":61,"url":393}],749:[function(require,module,exports){
 arguments[4][62][0].apply(exports,arguments)
-},{"dup":62,"tunnel-agent":826,"url":393}],746:[function(require,module,exports){
+},{"dup":62,"tunnel-agent":830,"url":393}],750:[function(require,module,exports){
 arguments[4][63][0].apply(exports,arguments)
-},{"crypto":169,"dup":63,"url":393}],747:[function(require,module,exports){
+},{"crypto":169,"dup":63,"url":393}],751:[function(require,module,exports){
 arguments[4][64][0].apply(exports,arguments)
-},{"buffer":163,"dup":64,"readable-stream/duplex":748,"util":396}],748:[function(require,module,exports){
+},{"buffer":163,"dup":64,"readable-stream/duplex":752,"util":396}],752:[function(require,module,exports){
 arguments[4][65][0].apply(exports,arguments)
-},{"./lib/_stream_duplex.js":749,"dup":65}],749:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":753,"dup":65}],753:[function(require,module,exports){
 arguments[4][66][0].apply(exports,arguments)
-},{"./_stream_readable":750,"./_stream_writable":751,"_process":368,"core-util-is":752,"dup":66,"inherits":753}],750:[function(require,module,exports){
+},{"./_stream_readable":754,"./_stream_writable":755,"_process":368,"core-util-is":756,"dup":66,"inherits":757}],754:[function(require,module,exports){
 arguments[4][67][0].apply(exports,arguments)
-},{"_process":368,"buffer":163,"core-util-is":752,"dup":67,"events":361,"inherits":753,"isarray":754,"stream":386,"string_decoder/":755}],751:[function(require,module,exports){
+},{"_process":368,"buffer":163,"core-util-is":756,"dup":67,"events":361,"inherits":757,"isarray":758,"stream":386,"string_decoder/":759}],755:[function(require,module,exports){
 arguments[4][68][0].apply(exports,arguments)
-},{"./_stream_duplex":749,"_process":368,"buffer":163,"core-util-is":752,"dup":68,"inherits":753,"stream":386}],752:[function(require,module,exports){
+},{"./_stream_duplex":753,"_process":368,"buffer":163,"core-util-is":756,"dup":68,"inherits":757,"stream":386}],756:[function(require,module,exports){
 arguments[4][69][0].apply(exports,arguments)
-},{"../../../../../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"dup":69}],753:[function(require,module,exports){
+},{"../../../../../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"dup":69}],757:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],754:[function(require,module,exports){
+},{"dup":13}],758:[function(require,module,exports){
 arguments[4][71][0].apply(exports,arguments)
-},{"dup":71}],755:[function(require,module,exports){
+},{"dup":71}],759:[function(require,module,exports){
 arguments[4][72][0].apply(exports,arguments)
-},{"buffer":163,"dup":72}],756:[function(require,module,exports){
+},{"buffer":163,"dup":72}],760:[function(require,module,exports){
 arguments[4][73][0].apply(exports,arguments)
-},{"dup":73}],757:[function(require,module,exports){
+},{"dup":73}],761:[function(require,module,exports){
 arguments[4][74][0].apply(exports,arguments)
-},{"../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"delayed-stream":758,"dup":74,"stream":386,"util":396}],758:[function(require,module,exports){
+},{"../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"delayed-stream":762,"dup":74,"stream":386,"util":396}],762:[function(require,module,exports){
 arguments[4][75][0].apply(exports,arguments)
-},{"dup":75,"stream":386,"util":396}],759:[function(require,module,exports){
+},{"dup":75,"stream":386,"util":396}],763:[function(require,module,exports){
 arguments[4][76][0].apply(exports,arguments)
-},{"dup":76}],760:[function(require,module,exports){
+},{"dup":76}],764:[function(require,module,exports){
 arguments[4][77][0].apply(exports,arguments)
-},{"dup":77,"http":387,"https":362,"net":147,"tls":147,"util":396}],761:[function(require,module,exports){
+},{"dup":77,"http":387,"https":362,"net":147,"tls":147,"util":396}],765:[function(require,module,exports){
 arguments[4][78][0].apply(exports,arguments)
-},{"_process":368,"async":589,"buffer":163,"combined-stream":757,"dup":78,"fs":147,"http":387,"https":362,"mime-types":762,"path":367,"url":393,"util":396}],762:[function(require,module,exports){
+},{"_process":368,"async":589,"buffer":163,"combined-stream":761,"dup":78,"fs":147,"http":387,"https":362,"mime-types":766,"path":367,"url":393,"util":396}],766:[function(require,module,exports){
 arguments[4][80][0].apply(exports,arguments)
-},{"dup":80,"mime-db":764,"path":367}],763:[function(require,module,exports){
+},{"dup":80,"mime-db":768,"path":367}],767:[function(require,module,exports){
 arguments[4][81][0].apply(exports,arguments)
-},{"dup":81}],764:[function(require,module,exports){
+},{"dup":81}],768:[function(require,module,exports){
 arguments[4][82][0].apply(exports,arguments)
-},{"./db.json":763,"dup":82}],765:[function(require,module,exports){
+},{"./db.json":767,"dup":82}],769:[function(require,module,exports){
 arguments[4][83][0].apply(exports,arguments)
-},{"dup":83}],766:[function(require,module,exports){
+},{"dup":83}],770:[function(require,module,exports){
 arguments[4][84][0].apply(exports,arguments)
-},{"./error":765,"./schemas":774,"dup":84,"is-my-json-valid":784}],767:[function(require,module,exports){
+},{"./error":769,"./schemas":778,"dup":84,"is-my-json-valid":788}],771:[function(require,module,exports){
 arguments[4][85][0].apply(exports,arguments)
-},{"dup":85}],768:[function(require,module,exports){
+},{"dup":85}],772:[function(require,module,exports){
 arguments[4][86][0].apply(exports,arguments)
-},{"dup":86}],769:[function(require,module,exports){
+},{"dup":86}],773:[function(require,module,exports){
 arguments[4][87][0].apply(exports,arguments)
-},{"dup":87}],770:[function(require,module,exports){
+},{"dup":87}],774:[function(require,module,exports){
 arguments[4][88][0].apply(exports,arguments)
-},{"dup":88}],771:[function(require,module,exports){
+},{"dup":88}],775:[function(require,module,exports){
 arguments[4][89][0].apply(exports,arguments)
-},{"dup":89}],772:[function(require,module,exports){
+},{"dup":89}],776:[function(require,module,exports){
 arguments[4][90][0].apply(exports,arguments)
-},{"dup":90}],773:[function(require,module,exports){
+},{"dup":90}],777:[function(require,module,exports){
 arguments[4][91][0].apply(exports,arguments)
-},{"dup":91}],774:[function(require,module,exports){
+},{"dup":91}],778:[function(require,module,exports){
 arguments[4][92][0].apply(exports,arguments)
-},{"./cache.json":767,"./cacheEntry.json":768,"./content.json":769,"./cookie.json":770,"./creator.json":771,"./entry.json":772,"./har.json":773,"./log.json":775,"./page.json":776,"./pageTimings.json":777,"./postData.json":778,"./record.json":779,"./request.json":780,"./response.json":781,"./timings.json":782,"dup":92}],775:[function(require,module,exports){
+},{"./cache.json":771,"./cacheEntry.json":772,"./content.json":773,"./cookie.json":774,"./creator.json":775,"./entry.json":776,"./har.json":777,"./log.json":779,"./page.json":780,"./pageTimings.json":781,"./postData.json":782,"./record.json":783,"./request.json":784,"./response.json":785,"./timings.json":786,"dup":92}],779:[function(require,module,exports){
 arguments[4][93][0].apply(exports,arguments)
-},{"dup":93}],776:[function(require,module,exports){
+},{"dup":93}],780:[function(require,module,exports){
 arguments[4][94][0].apply(exports,arguments)
-},{"dup":94}],777:[function(require,module,exports){
+},{"dup":94}],781:[function(require,module,exports){
 arguments[4][95][0].apply(exports,arguments)
-},{"dup":95}],778:[function(require,module,exports){
+},{"dup":95}],782:[function(require,module,exports){
 arguments[4][96][0].apply(exports,arguments)
-},{"dup":96}],779:[function(require,module,exports){
+},{"dup":96}],783:[function(require,module,exports){
 arguments[4][97][0].apply(exports,arguments)
-},{"dup":97}],780:[function(require,module,exports){
+},{"dup":97}],784:[function(require,module,exports){
 arguments[4][98][0].apply(exports,arguments)
-},{"dup":98}],781:[function(require,module,exports){
+},{"dup":98}],785:[function(require,module,exports){
 arguments[4][99][0].apply(exports,arguments)
-},{"dup":99}],782:[function(require,module,exports){
+},{"dup":99}],786:[function(require,module,exports){
 arguments[4][100][0].apply(exports,arguments)
-},{"dup":100}],783:[function(require,module,exports){
+},{"dup":100}],787:[function(require,module,exports){
 arguments[4][101][0].apply(exports,arguments)
-},{"dup":101}],784:[function(require,module,exports){
+},{"dup":101}],788:[function(require,module,exports){
 arguments[4][102][0].apply(exports,arguments)
-},{"./formats":783,"dup":102,"generate-function":785,"generate-object-property":786,"jsonpointer":788,"xtend":789}],785:[function(require,module,exports){
+},{"./formats":787,"dup":102,"generate-function":789,"generate-object-property":790,"jsonpointer":792,"xtend":793}],789:[function(require,module,exports){
 arguments[4][103][0].apply(exports,arguments)
-},{"dup":103,"util":396}],786:[function(require,module,exports){
+},{"dup":103,"util":396}],790:[function(require,module,exports){
 arguments[4][104][0].apply(exports,arguments)
-},{"dup":104,"is-property":787}],787:[function(require,module,exports){
+},{"dup":104,"is-property":791}],791:[function(require,module,exports){
 arguments[4][105][0].apply(exports,arguments)
-},{"dup":105}],788:[function(require,module,exports){
+},{"dup":105}],792:[function(require,module,exports){
 arguments[4][106][0].apply(exports,arguments)
-},{"console":167,"dup":106}],789:[function(require,module,exports){
+},{"console":167,"dup":106}],793:[function(require,module,exports){
 arguments[4][107][0].apply(exports,arguments)
-},{"dup":107}],790:[function(require,module,exports){
+},{"dup":107}],794:[function(require,module,exports){
 arguments[4][108][0].apply(exports,arguments)
-},{"dup":108}],791:[function(require,module,exports){
+},{"dup":108}],795:[function(require,module,exports){
 arguments[4][109][0].apply(exports,arguments)
-},{"./parser":792,"./signer":793,"./util":794,"./verify":795,"dup":109}],792:[function(require,module,exports){
+},{"./parser":796,"./signer":797,"./util":798,"./verify":799,"dup":109}],796:[function(require,module,exports){
 arguments[4][110][0].apply(exports,arguments)
-},{"assert-plus":802,"dup":110,"util":396}],793:[function(require,module,exports){
+},{"assert-plus":806,"dup":110,"util":396}],797:[function(require,module,exports){
 arguments[4][111][0].apply(exports,arguments)
-},{"assert-plus":802,"crypto":169,"dup":111,"http":387,"util":396}],794:[function(require,module,exports){
+},{"assert-plus":806,"crypto":169,"dup":111,"http":387,"util":396}],798:[function(require,module,exports){
 arguments[4][112][0].apply(exports,arguments)
-},{"asn1":801,"assert-plus":802,"buffer":163,"crypto":169,"ctype":805,"dup":112}],795:[function(require,module,exports){
+},{"asn1":805,"assert-plus":806,"buffer":163,"crypto":169,"ctype":809,"dup":112}],799:[function(require,module,exports){
 arguments[4][113][0].apply(exports,arguments)
-},{"assert-plus":802,"crypto":169,"dup":113}],796:[function(require,module,exports){
+},{"assert-plus":806,"crypto":169,"dup":113}],800:[function(require,module,exports){
 arguments[4][114][0].apply(exports,arguments)
-},{"dup":114}],797:[function(require,module,exports){
+},{"dup":114}],801:[function(require,module,exports){
 arguments[4][115][0].apply(exports,arguments)
-},{"./errors":796,"./reader":798,"./types":799,"./writer":800,"dup":115}],798:[function(require,module,exports){
+},{"./errors":800,"./reader":802,"./types":803,"./writer":804,"dup":115}],802:[function(require,module,exports){
 arguments[4][116][0].apply(exports,arguments)
-},{"../../../../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"./errors":796,"./types":799,"assert":148,"dup":116}],799:[function(require,module,exports){
+},{"../../../../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"./errors":800,"./types":803,"assert":148,"dup":116}],803:[function(require,module,exports){
 arguments[4][117][0].apply(exports,arguments)
-},{"dup":117}],800:[function(require,module,exports){
+},{"dup":117}],804:[function(require,module,exports){
 arguments[4][118][0].apply(exports,arguments)
-},{"./errors":796,"./types":799,"assert":148,"buffer":163,"dup":118}],801:[function(require,module,exports){
+},{"./errors":800,"./types":803,"assert":148,"buffer":163,"dup":118}],805:[function(require,module,exports){
 arguments[4][119][0].apply(exports,arguments)
-},{"./ber/index":797,"dup":119}],802:[function(require,module,exports){
+},{"./ber/index":801,"dup":119}],806:[function(require,module,exports){
 arguments[4][120][0].apply(exports,arguments)
-},{"../../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"_process":368,"assert":148,"dup":120,"stream":386,"util":396}],803:[function(require,module,exports){
+},{"../../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":364,"_process":368,"assert":148,"dup":120,"stream":386,"util":396}],807:[function(require,module,exports){
 arguments[4][121][0].apply(exports,arguments)
-},{"assert":148,"dup":121}],804:[function(require,module,exports){
+},{"assert":148,"dup":121}],808:[function(require,module,exports){
 arguments[4][122][0].apply(exports,arguments)
-},{"assert":148,"dup":122}],805:[function(require,module,exports){
+},{"assert":148,"dup":122}],809:[function(require,module,exports){
 arguments[4][123][0].apply(exports,arguments)
-},{"./ctf.js":803,"./ctio.js":804,"assert":148,"buffer":163,"dup":123}],806:[function(require,module,exports){
+},{"./ctf.js":807,"./ctio.js":808,"assert":148,"buffer":163,"dup":123}],810:[function(require,module,exports){
 arguments[4][124][0].apply(exports,arguments)
-},{"dup":124,"stream":386}],807:[function(require,module,exports){
+},{"dup":124,"stream":386}],811:[function(require,module,exports){
 arguments[4][125][0].apply(exports,arguments)
-},{"dup":125}],808:[function(require,module,exports){
+},{"dup":125}],812:[function(require,module,exports){
 arguments[4][126][0].apply(exports,arguments)
-},{"dup":126,"mime-db":810}],809:[function(require,module,exports){
+},{"dup":126,"mime-db":814}],813:[function(require,module,exports){
 arguments[4][127][0].apply(exports,arguments)
-},{"dup":127}],810:[function(require,module,exports){
+},{"dup":127}],814:[function(require,module,exports){
 arguments[4][82][0].apply(exports,arguments)
-},{"./db.json":809,"dup":82}],811:[function(require,module,exports){
+},{"./db.json":813,"dup":82}],815:[function(require,module,exports){
 arguments[4][129][0].apply(exports,arguments)
-},{"dup":129}],812:[function(require,module,exports){
+},{"dup":129}],816:[function(require,module,exports){
 arguments[4][130][0].apply(exports,arguments)
-},{"crypto":169,"dup":130,"querystring":372}],813:[function(require,module,exports){
+},{"crypto":169,"dup":130,"querystring":372}],817:[function(require,module,exports){
 arguments[4][131][0].apply(exports,arguments)
-},{"./lib/":814,"dup":131}],814:[function(require,module,exports){
+},{"./lib/":818,"dup":131}],818:[function(require,module,exports){
 arguments[4][132][0].apply(exports,arguments)
-},{"./parse":815,"./stringify":816,"dup":132}],815:[function(require,module,exports){
+},{"./parse":819,"./stringify":820,"dup":132}],819:[function(require,module,exports){
 arguments[4][133][0].apply(exports,arguments)
-},{"./utils":817,"dup":133}],816:[function(require,module,exports){
+},{"./utils":821,"dup":133}],820:[function(require,module,exports){
 arguments[4][134][0].apply(exports,arguments)
-},{"./utils":817,"dup":134}],817:[function(require,module,exports){
+},{"./utils":821,"dup":134}],821:[function(require,module,exports){
 arguments[4][135][0].apply(exports,arguments)
-},{"dup":135}],818:[function(require,module,exports){
+},{"dup":135}],822:[function(require,module,exports){
 arguments[4][136][0].apply(exports,arguments)
-},{"buffer":163,"dup":136,"stream":386,"string_decoder":392,"util":396}],819:[function(require,module,exports){
+},{"buffer":163,"dup":136,"stream":386,"string_decoder":392,"util":396}],823:[function(require,module,exports){
 arguments[4][137][0].apply(exports,arguments)
-},{"../package.json":825,"./memstore":820,"./pathMatch":821,"./permuteDomain":822,"./pubsuffix":823,"./store":824,"dup":137,"net":147,"punycode":369,"url":393}],820:[function(require,module,exports){
+},{"../package.json":829,"./memstore":824,"./pathMatch":825,"./permuteDomain":826,"./pubsuffix":827,"./store":828,"dup":137,"net":147,"punycode":369,"url":393}],824:[function(require,module,exports){
 arguments[4][138][0].apply(exports,arguments)
-},{"./pathMatch":821,"./permuteDomain":822,"./store":824,"dup":138,"util":396}],821:[function(require,module,exports){
+},{"./pathMatch":825,"./permuteDomain":826,"./store":828,"dup":138,"util":396}],825:[function(require,module,exports){
 arguments[4][139][0].apply(exports,arguments)
-},{"dup":139}],822:[function(require,module,exports){
+},{"dup":139}],826:[function(require,module,exports){
 arguments[4][140][0].apply(exports,arguments)
-},{"./pubsuffix":823,"dup":140}],823:[function(require,module,exports){
+},{"./pubsuffix":827,"dup":140}],827:[function(require,module,exports){
 arguments[4][141][0].apply(exports,arguments)
-},{"dup":141,"punycode":369}],824:[function(require,module,exports){
+},{"dup":141,"punycode":369}],828:[function(require,module,exports){
 arguments[4][142][0].apply(exports,arguments)
-},{"dup":142}],825:[function(require,module,exports){
+},{"dup":142}],829:[function(require,module,exports){
 arguments[4][143][0].apply(exports,arguments)
-},{"dup":143}],826:[function(require,module,exports){
+},{"dup":143}],830:[function(require,module,exports){
 arguments[4][144][0].apply(exports,arguments)
-},{"_process":368,"assert":148,"buffer":163,"dup":144,"events":361,"http":387,"https":362,"net":147,"tls":147,"util":396}],827:[function(require,module,exports){
+},{"_process":368,"assert":148,"buffer":163,"dup":144,"events":361,"http":387,"https":362,"net":147,"tls":147,"util":396}],831:[function(require,module,exports){
 arguments[4][145][0].apply(exports,arguments)
-},{"./lib/auth":736,"./lib/cookies":737,"./lib/getProxyFromURI":738,"./lib/har":739,"./lib/helpers":740,"./lib/multipart":741,"./lib/oauth":742,"./lib/querystring":743,"./lib/redirect":744,"./lib/tunnel":745,"_process":368,"aws-sign2":746,"bl":747,"buffer":163,"caseless":756,"dup":145,"forever-agent":760,"form-data":761,"hawk":790,"http":387,"http-signature":791,"https":362,"mime-types":808,"stream":386,"stringstream":818,"url":393,"util":396,"zlib":162}],828:[function(require,module,exports){
+},{"./lib/auth":740,"./lib/cookies":741,"./lib/getProxyFromURI":742,"./lib/har":743,"./lib/helpers":744,"./lib/multipart":745,"./lib/oauth":746,"./lib/querystring":747,"./lib/redirect":748,"./lib/tunnel":749,"_process":368,"aws-sign2":750,"bl":751,"buffer":163,"caseless":760,"dup":145,"forever-agent":764,"form-data":765,"hawk":794,"http":387,"http-signature":795,"https":362,"mime-types":812,"stream":386,"stringstream":822,"url":393,"util":396,"zlib":162}],832:[function(require,module,exports){
 (function (Buffer){
 // var assert = require('assert')
 var async = require('async')
@@ -107609,6 +107711,7 @@ var Bip38 = require('bip38')
 var cs = require('coinstring')
 var hash = require('crypto-hashing')
 var crypto = require('crypto')
+var BigInteger = require('bigi')
 
 var DataStorage = require('data-storage')
 
@@ -107677,7 +107780,7 @@ HDWallet.encryptPrivateKey = function (privateWif, password, progressCallback) {
 
 HDWallet.decryptPrivateKey = function (encryptedPrivKey, password, network, progressCallback) {
   var bip38 = new Bip38()
-  
+
   if (typeof network === 'function') {
     progressCallback = network
     network = null
@@ -108025,6 +108128,12 @@ HDWallet.prototype.getPrivateSeed = function () {
   return this.privateSeed.toString('hex')
 }
 
+HDWallet.prototype.getPrivateSeedWIF = function () {
+  var d = BigInteger.fromBuffer(this.privateSeed)
+  var priv = new bitcoin.ECKey(d, true)
+  return priv.toWIF(this.network)
+}
+
 HDWallet.prototype.getPrivateKey = function (account, addressIndex) {
   var self = this
 
@@ -108105,5 +108214,5 @@ var doubleSha256 = function (message) {
 module.exports = HDWallet
 
 }).call(this,require("buffer").Buffer)
-},{"async":589,"bip38":590,"bitcoinjs-lib":678,"buffer":163,"coinkey":687,"coinstring":716,"crypto":169,"crypto-hashing":732,"data-storage":586,"events":361,"request":735,"util":396}]},{},[574])(574)
+},{"async":589,"bigi":592,"bip38":594,"bitcoinjs-lib":682,"buffer":163,"coinkey":691,"coinstring":720,"crypto":169,"crypto-hashing":736,"data-storage":586,"events":361,"request":739,"util":396}]},{},[574])(574)
 });
