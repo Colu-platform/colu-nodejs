@@ -107631,19 +107631,28 @@ var HDWallet = function (settings) {
   }
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
-  if (settings.privateSeed && settings.privateKey) {
-    throw new Error('Can\'t have both privateSeed and privateKey.')
+  if (settings.privateSeed && (settings.privateKey || settings.privateSeedWIF)) {
+    throw new Error('Can\'t have both privateSeed and privateKey/privateSeedWIF.')
+  }
+  if (settings.privateKey && settings.privateSeedWIF && settings.privateKey !== settings.privateSeedWIF) {
+    throw new Error('Can\'t privateKey and privateSeedWIF should be the same (can use only one).')
   }
   self.privateSeed = settings.privateSeed || null
   if (settings.privateKey) {
-    var privateKeyBigInt = bitcoin.ECKey.fromWIF(settings.privateKey, self.network).d
-    self.privateSeed = privateKeyBigInt.toHex(32)
-
+    console.warn('Deprecated: Please use privateSeedWIF and not privateKey.')
+    settings.privateSeedWIF = settings.privateKey
+  }
+  if (settings.privateSeedWIF) {
+    var privateKeySeedBigInt = bitcoin.ECKey.fromWIF(settings.privateSeedWIF, self.network).d
+    self.privateSeed = privateKeySeedBigInt.toHex(32)
   }
   if (!self.privateSeed) {
     self.privateSeed = crypto.randomBytes(32)
     self.needToDiscover = false
   } else {
+    if (!isValidSeed(self.privateSeed)) {
+      throw new Error('privateSeed should be a 256 bits hex (64 chars), if you are using WIF, use privateSeedWIF instead.')
+    }
     self.privateSeed = new Buffer(self.privateSeed, 'hex')
     self.needToDiscover = true
   }
@@ -107654,6 +107663,10 @@ var HDWallet = function (settings) {
   }
 }
 
+var isValidSeed = function (seed) {
+  return (typeof(seed) === 'string' && seed.length === 64 && !isNaN(parseInt(seed, 16)))
+}
+
 util.inherits(HDWallet, events.EventEmitter)
 
 HDWallet.encryptPrivateKey = function (privateWif, password, progressCallback) {
@@ -107662,8 +107675,27 @@ HDWallet.encryptPrivateKey = function (privateWif, password, progressCallback) {
   return bip38.encrypt(key.privateWif, password, key.publicAddress, progressCallback)
 }
 
-HDWallet.decryptPrivateKey = function (encryptedPrivKey, password, progressCallback) {
+HDWallet.decryptPrivateKey = function (encryptedPrivKey, password, network, progressCallback) {
   var bip38 = new Bip38()
+  
+  if (typeof network === 'function') {
+    progressCallback = network
+    network = null
+  }
+  if (network) {
+    if (typeof network === 'string') {
+      if (network === 'testnet') {
+        bip38.versions = {
+          private: 0xef
+        }
+      }
+    } else {
+      bip38.versions = {
+        private: network.wif || 0x80
+      }
+    }
+  }
+
   var decrypedPrivKey = bip38.decrypt(encryptedPrivKey, password, progressCallback)
   var decryptedAddress = new CoinKey.fromWif(decrypedPrivKey).publicAddress
 
