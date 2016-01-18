@@ -55,6 +55,7 @@
     "mkpath": "^0.1.0",
     "mocha": "^2.3.4",
     "morgan": "^1.6.1",
+    "node-express-json-rpc2-async": "^1.0.2",
     "path-extra": "^1.0.3",
     "request": "^2.58.0",
     "should": "^8.1.1",
