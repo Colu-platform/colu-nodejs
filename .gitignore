@@ -28,5 +28,7 @@ node_modules
 
 test.html
 properties.conf
+bin/playground.js
 test/settings.js
 test/settings.json
+test/test-rpc.js

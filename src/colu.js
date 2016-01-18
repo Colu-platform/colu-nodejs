@@ -54,14 +54,13 @@ Colu.prototype.init = function (cb) {
   }
   self.ds = new DataStorage(settings)
   self.ds.once('connect', function () {
-    self.afterDSInit(cb)
+    afterDSInit(self, cb)
   })
 
   self.ds.init()
 }
 
-Colu.prototype.afterDSInit = function (cb) {
-  var self = this
+var afterDSInit = function (self, cb) {
   self.hdwallet.ds = self.ds
   self.hdwallet.on('connect', function () {
     if (!self.initiated) {
@@ -91,12 +90,12 @@ Colu.prototype.afterDSInit = function (cb) {
   })
 }
 
-Colu.prototype.buildTransaction = function (type, args, cb) {
+var buildTransaction = function (coluHost, apiKey, type, args, cb) {
   var dataParams = {
     cc_args: args
   }
-  var path = this.coluHost + '/build_finance_'+type
-  if (this.apiKey) path += '?token=' + this.apiKey
+  var path = coluHost + '/build_finance_'+ type
+  if (apiKey) path += '?token=' + apiKey
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
     if (!response || response.statusCode !== 200) return cb(body)
@@ -104,8 +103,7 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
   })
 }
 
-Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
-  var self = this
+var signAndTransmit = function (self, txHex, lastTxid, callback) {
 
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
   if (!addresses) return callback('can\'t find addresses to fund')
@@ -116,17 +114,17 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
     function (err, privateKeys) {
       if (err) return callback(err)
       var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-      self.transmit(signedTxHex, lastTxid, callback)
+      transmit(self.coluHost, signedTxHex, lastTxid, callback)
     }
   )
 }
 
-Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
+var transmit = function (coluHost, signedTxHex, lastTxid, callback) {
   var dataParams = {
     last_txid: lastTxid,
     tx_hex: signedTxHex
   },
-  path = this.coluHost + '/transmit_financed'
+  path = coluHost + '/transmit_financed'
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) return callback(body)
@@ -171,14 +169,14 @@ Colu.prototype.issueAsset = function (args, callback) {
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      self.buildTransaction('issue', args, cb)
+      buildTransaction(self.coluHost, self.apiKey, 'issue', args, cb)
     },
     function (info, cb) {
       if (typeof info === 'function') return info('wrong server response')
       if (!info || !info.txHex) return cb('wrong server response')
       assetInfo = info
       lastTxid = assetInfo.financeTxid
-      self.signAndTransmit(assetInfo.txHex, lastTxid, cb)
+      signAndTransmit(self, assetInfo.txHex, lastTxid, cb)
     },
     function (body, cb) {
       assetInfo.txid = body.txid2.txid
@@ -204,13 +202,13 @@ Colu.prototype.sendAsset = function (args, callback) {
       }
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      self.buildTransaction('send', args, cb)
+      buildTransaction(self.coluHost, self.apiKey, 'send', args, cb)
     },
     function (info, cb) {
       sendInfo = info
       lastTxid = sendInfo.financeTxid
 
-      self.signAndTransmit(sendInfo.txHex, lastTxid, cb)
+      signAndTransmit(self, sendInfo.txHex, lastTxid, cb)
     },
     function (body, cb) {
       sendInfo.txid = body.txid2.txid
@@ -307,6 +305,15 @@ Colu.prototype.getTransactionsFromAddresses = function (addresses, callback) {
 
 Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
   var self = this
+
+  if (typeof full === 'undefined') {
+    full = true   //default value
+  }
+  if (typeof full === 'function') {
+    callback = full
+    full = true
+  }
+
   var metadata
   async.waterfall([
     function (cb) {
@@ -390,7 +397,7 @@ Colu.prototype.onNewTransaction = function (callback) {
   if (!self.events) return false
   if (self.eventsSecure) {
     self.events.on('newtransaction', function (data) {
-      if (self.isLocalTransaction(data.newtransaction)) {
+      if (isLocalTransaction(self.addresses, data.newtransaction)) {
         callback(data.newtransaction)
       }
     })
@@ -400,10 +407,10 @@ Colu.prototype.onNewTransaction = function (callback) {
     var addresses = []
     var transactions = []
     self.hdwallet.on('registerAddress', function (address) {
-      self.registerAddress(address, addresses, transactions, callback)
+      registerAddress(self, address, addresses, transactions, callback)
     })
     self.addresses.forEach(function (address) {
-      self.registerAddress(address, addresses, transactions, callback)
+      registerAddress(self, address, addresses, transactions, callback)
     })
   }
 }
@@ -414,7 +421,7 @@ Colu.prototype.onNewCCTransaction = function (callback) {
   if (!self.events) return false
   if (self.eventsSecure) {
     self.events.on('newcctransaction', function (data) {
-      if (self.isLocalTransaction(data.newcctransaction)) {
+      if (isLocalTransaction(self.addresses, data.newcctransaction)) {
         callback(data.newcctransaction)
       }
     })
@@ -429,16 +436,14 @@ Colu.prototype.onNewCCTransaction = function (callback) {
   }
 }
 
-Colu.prototype.isLocalTransaction = function (transaction) {
-  var self = this
-
+var isLocalTransaction = function (addresses, transaction) {
   var localTx = false
   
   if (!localTx && transaction.vin) {
     transaction.vin.forEach(function (input) {
       if (!localTx && input.previousOutput && input.previousOutput.addresses) {
         input.previousOutput.addresses.forEach(function (address) {
-          if (!localTx && ~self.addresses.indexOf(address)) {
+          if (!localTx && ~addresses.indexOf(address)) {
             localTx = true
           }
         })
@@ -450,7 +455,7 @@ Colu.prototype.isLocalTransaction = function (transaction) {
     transaction.vout.forEach(function (output) {
       if (!localTx && output.scriptPubKey && output.scriptPubKey.addresses) {
         output.scriptPubKey.addresses.forEach(function (address) {
-          if (!localTx && ~self.addresses.indexOf(address)) {
+          if (!localTx && ~ addresses.indexOf(address)) {
             localTx = true
           }
         })
@@ -461,9 +466,7 @@ Colu.prototype.isLocalTransaction = function (transaction) {
   return localTx
 }
 
-Colu.prototype.registerAddress = function (address, addresses, transactions, callback) {
-  var self = this
-  
+var registerAddress = function (self, address, addresses, transactions, callback) {
   if (!~addresses.indexOf(address)) {
     var channel = 'address/'+address
     self.events.on(channel, function (data) {
