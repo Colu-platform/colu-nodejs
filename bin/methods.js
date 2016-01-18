@@ -18,6 +18,9 @@ module.exports = {
 		'optional': ['transactions'],
 		'callback': true
 	},
+	"getIssuedAssetsFromTransactions": {
+		'params': ['addresses', 'transactions']
+	},
 	"getAssetMetadata": {
 		'params': ['assetId', 'utxo'],
 		'optional': ['full'],

@@ -2,9 +2,8 @@
   "name": "colu",
   "version": "0.9.20",
   "description": "Colu SDK for engine and colored-coins api.",
-  "main": "bin/run.js",
+  "main": "src/colu.js",
   "scripts": {
-    "start": "node bin/run.js",
     "test": "istanbul cover _mocha -- -R spec",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "browserify": "browserify ./src/colu.js -o ./client/colu.client.js --im -s Colu",
