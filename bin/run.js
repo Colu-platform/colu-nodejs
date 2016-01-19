@@ -19,7 +19,7 @@ try {
       network: process.env.COLU_SDK_NETWORK || 'testnet',
       coluHost: process.env.COLU_SDK_COLU_HOST || 'https://dev.engine.colu.co',
       apiKey: process.env.COLU_SDK_API_KEY,
-      privateSed: process.env.COLU_SDK_PRIVATE_SEED,
+      privateSeed: process.env.COLU_SDK_PRIVATE_SEED,
       privateSeedWIF: process.env.COLU_SDK_PRIVATE_SEED_WIF,
       coloredCoinsHost: process.env.COLU_SDK_CC_HOST,
       redisPort: process.env.COLU_SDK_REDIS_PORT,

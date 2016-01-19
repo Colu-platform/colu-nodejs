@@ -32,3 +32,4 @@ bin/playground.js
 test/settings.js
 test/settings.json
 test/test-rpc.js
+test/test-utils.js
