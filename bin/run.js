@@ -98,7 +98,6 @@ app.post('/', function (req, res, next) {
     }
 
     /* prepare the parameters */
-
     var orderedParams
     var requiredParamNames = methods[req.body.method].params
     if (!requiredParamNames) {
@@ -113,11 +112,11 @@ app.post('/', function (req, res, next) {
       var i;
       for (i = 0; i < requiredParamNames.length; i++) {
         paramName = requiredParamNames[i]
-        if (!params[paramName]) {
+        if (!params || !params[paramName]) {
           return respond({error : {
             code : jsonrpc.INVALID_PARAMS,
             message : 'Invalid params',
-            data : 'required parameters: ' + requiredParamNames.toString() + ', given: ' + Object.keys(params) +'.'
+            data : 'required parameters: ' + requiredParamNames.toString() + ', given: ' + (!params? params : Object.keys(params)) +'.'
           }})
         } 
 
