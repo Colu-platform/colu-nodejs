@@ -12,8 +12,6 @@ var fs = require('fs')
 var http = require('http')
 var https = require('https')
 
-var httpServer
-var httpsServer
 var settings
 var basicAuthCredentials
 var privateKey
@@ -38,7 +36,7 @@ settings.colu.coloredCoinsHost = settings.colu.coloredCoinsHost || process.env.C
 settings.colu.redisPort = settings.colu.redisPort || process.env.COLU_SDK_REDIS_PORT
 settings.colu.redisHost = settings.colu.redisHost || process.env.COLU_SDK_REDIS_HOST
 settings.server = settings.server || {}
-settings.server.httpPort = settings.server.httpPort || process.env.COLU_SDK_RPC_SERVER_HTTP_PORT || 80
+settings.server.httpPort = settings.server.httpPort || process.env.COLU_SDK_RPC_SERVER_HTTP_PORT || process.env.PORT || 80
 settings.server.httpsPort = settings.server.httpsPort || process.env.COLU_SDK_RPC_SERVER_HTTPS_PORT || 443
 settings.server.host = settings.server.host || process.env.COLU_SDK_RPC_SERVER_HOST || '127.0.0.1'
 settings.server.usessl = settings.server.usessl  || (process.env.COLU_SDK_RPC_USE_SSL === 'true')

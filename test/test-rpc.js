@@ -1,4 +1,3 @@
-var server = require('../bin/run')
 var testUtils = require('./test-utils')
 var chai = require('chai')
 var assert = require('chai').assert
@@ -11,6 +10,29 @@ describe('JSON-RPC API tests', function() {
 	var url = 'http://localhost'
 	var address
 	var assetId
+	var oldEnv
+	var server 
+
+	before(function() {
+		oldEnv = {
+			network: process.env.COLU_SDK_NETWORK,
+			host: process.env.COLU_SDK_COLU_HOST,
+			port: process.env.COLU_SDK_RPC_SERVER_HTTP_PORT,
+			usessl: (process.env.COLU_SDK_RPC_USE_SSL === 'true')
+		}
+		process.env.COLU_SDK_NETWORK = 'testnet'
+		process.env.COLU_SDK_COLU_HOST = 'https://testnet.engine.colu.co'
+		process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = 80
+		process.env.COLU_SDK_RPC_USE_SSL = false
+		server = require('../bin/run')
+	})
+
+	after(function() {
+			process.env.COLU_SDK_NETWORK = oldEnv.network
+			process.env.COLU_SDK_COLU_HOST = oldEnv.host
+			process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = oldEnv.port
+			process.env.COLU_SDK_RPC_USE_SSL = oldEnv.usessl
+	})
 
 	it('Should return an \'Invalid request\' error.', function (done) {
 		this.timeout(2000)
