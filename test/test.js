@@ -113,13 +113,11 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should return cached asset metadata.', function (done) {
-    colu.getAssetMetadata(assetId, utxo, false, function (err, metadata) {
+    // this time with shorter default timeout
+    var args = testUtils.createGetAssetMetadataArgs()
+    colu.getAssetMetadata(args.assetId, args.utxo, false, function (err, metadata) {
       assert.ifError(err)
-      expect(metadata).to.be.a('object')
-      assert.equal(metadata.assetName, assetName)
-      assert.equal(metadata.issuer, issuer)
-      assert.equal(metadata.description, description)
-      assert.equal(metadata.icon, icon)
+      testUtils.verifyGetAssetMetadataResponse(metadata)
       done()
     })
   })
