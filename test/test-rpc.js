@@ -1,4 +1,5 @@
 var testUtils = require('./test-utils')
+var portfinder = require('portfinder')
 var chai = require('chai')
 var assert = require('chai').assert
 var expect = require('chai').expect
@@ -14,17 +15,21 @@ describe('JSON-RPC API tests', function() {
 	var server 
 
 	before(function() {
-		oldEnv = {
-			network: process.env.COLU_SDK_NETWORK,
-			host: process.env.COLU_SDK_COLU_HOST,
-			port: process.env.COLU_SDK_RPC_SERVER_HTTP_PORT,
-			usessl: (process.env.COLU_SDK_RPC_USE_SSL === 'true')
-		}
-		process.env.COLU_SDK_NETWORK = 'testnet'
-		process.env.COLU_SDK_COLU_HOST = 'https://testnet.engine.colu.co'
-		process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = 80
-		process.env.COLU_SDK_RPC_USE_SSL = false
-		server = require('../bin/run')
+		portfinder.getPort(function (err, port) {
+			assert.ifError(err)
+			oldEnv = {
+				network: process.env.COLU_SDK_NETWORK,
+				host: process.env.COLU_SDK_COLU_HOST,
+				port: process.env.COLU_SDK_RPC_SERVER_HTTP_PORT,
+				usessl: (process.env.COLU_SDK_RPC_USE_SSL === 'true')
+			}
+			process.env.COLU_SDK_NETWORK = 'testnet'
+			process.env.COLU_SDK_COLU_HOST = 'https://testnet.engine.colu.co'
+			process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = port
+			process.env.COLU_SDK_RPC_USE_SSL = false
+			url = url + ':' + port
+			server = require('../bin/run')
+		})
 	})
 
 	after(function() {
