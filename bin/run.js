@@ -210,3 +210,5 @@ var launchServer = function (type, sslCredentials) {
     process.exit(-1)
   }) 
 }
+
+module.exports = app

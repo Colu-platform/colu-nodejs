@@ -1,3 +1,4 @@
+var server = require('../bin/run')
 var testUtils = require('./test-utils')
 var chai = require('chai')
 var assert = require('chai').assert
