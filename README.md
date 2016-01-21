@@ -30,8 +30,8 @@ Then just run it from the terminal like this:
 $ colu
 ```
 
-And now you can use REST request to use the Colu SDK.
-By default it will be hosted at : 127.0.0.1:8081 and will be locked to local host only.
+And now you can use [JSON-RPC 2.0](http://www.jsonrpc.org/specification) requests to use the Colu SDK.
+By default it will be hosted at : 127.0.0.1:80 and will be locked to local host only.
 
 ## Developing
 

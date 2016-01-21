@@ -135,9 +135,9 @@ app.post('/', function (req, res, next) {
 
     var methodObj = getMethodObj(req.body.method)
     if (!methods[req.body.method].callback) {
-      var resultData = methodObj.method.apply(methodObj.thisObj, orderedParams) 
-      return respond({result: resultData})
-    } 
+      var result = methodObj.method.apply(methodObj.thisObj, orderedParams) 
+      return respond({result: getFormattedValue(result)})
+    }
     //push callback to be last argument
     var callback = function (err, result) {
       if (err) return respond({
@@ -147,7 +147,7 @@ app.post('/', function (req, res, next) {
           data : err
         }
       })
-      respond({result : result})        
+      respond({result : getFormattedValue(result)})        
     }
     orderedParams.push(callback)
     methodObj.method.apply(methodObj.thisObj, orderedParams)
@@ -207,6 +207,14 @@ var launchServer = function (type, sslCredentials) {
     console.error('err = ', err)
     process.exit(-1)
   }) 
+}
+
+//convert the given result to suitable output to be given as a response
+var getFormattedValue = function(result) {
+  if (result && (typeof result.getFormattedValue === 'function')) {
+    return result.getFormattedValue()
+  }
+  return result
 }
 
 module.exports = app

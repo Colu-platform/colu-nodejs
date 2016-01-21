@@ -52,7 +52,7 @@
     "data-storage": "~0.0.7",
     "express": "^4.13.3",
     "fs": "0.0.2",
-    "hdwallet": "~0.4.13",
+    "hdwallet": "~0.4.14",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "mocha": "^2.3.4",
