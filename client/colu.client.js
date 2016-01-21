@@ -38078,6 +38078,158 @@ module.exports = Wallet
 
 }).call(this,require("buffer").Buffer)
 },{"./address":285,"./bufferutils":288,"./hdnode":294,"./networks":297,"./script":299,"./transaction_builder":302,"assert":3,"buffer":18,"randombytes":282,"typeforce":283}],304:[function(require,module,exports){
+var fs = require('fs')
+
+function readFile (file, options, callback) {
+  if (callback == null) {
+    callback = options
+    options = {}
+  }
+
+  fs.readFile(file, options, function (err, data) {
+    if (err) return callback(err)
+
+    var obj
+    try {
+      obj = JSON.parse(data, options ? options.reviver : null)
+    } catch (err2) {
+      err2.message = file + ': ' + err2.message
+      return callback(err2)
+    }
+
+    callback(null, obj)
+  })
+}
+
+function readFileSync (file, options) {
+  options = options || {}
+  if (typeof options === 'string') {
+    options = {encoding: options}
+  }
+
+  var shouldThrow = 'throws' in options ? options.throws : true
+  var content = fs.readFileSync(file, options)
+
+  try {
+    return JSON.parse(content, options.reviver)
+  } catch (err) {
+    if (shouldThrow) {
+      err.message = file + ': ' + err.message
+      throw err
+    } else {
+      return null
+    }
+  }
+}
+
+function writeFile (file, obj, options, callback) {
+  if (callback == null) {
+    callback = options
+    options = {}
+  }
+
+  var spaces = typeof options === 'object' && options !== null
+    ? 'spaces' in options
+    ? options.spaces : this.spaces
+    : this.spaces
+
+  var str = ''
+  try {
+    str = JSON.stringify(obj, options ? options.replacer : null, spaces) + '\n'
+  } catch (err) {
+    if (callback) return callback(err, null)
+  }
+
+  fs.writeFile(file, str, options, callback)
+}
+
+function writeFileSync (file, obj, options) {
+  options = options || {}
+
+  var spaces = typeof options === 'object' && options !== null
+    ? 'spaces' in options
+    ? options.spaces : this.spaces
+    : this.spaces
+
+  var str = JSON.stringify(obj, options.replacer, spaces) + '\n'
+  // not sure if fs.writeFileSync returns anything, but just in case
+  return fs.writeFileSync(file, str, options)
+}
+
+var jsonfile = {
+  spaces: null,
+  readFile: readFile,
+  readFileSync: readFileSync,
+  writeFile: writeFile,
+  writeFileSync: writeFileSync
+}
+
+module.exports = jsonfile
+
+},{"fs":2}],305:[function(require,module,exports){
+(function (process){
+var fs = require('fs');
+var path = require('path');
+
+var mkpath = function mkpath(dirpath, mode, callback) {
+    dirpath = path.resolve(dirpath);
+    
+    if (typeof mode === 'function' || typeof mode === 'undefined') {
+        callback = mode;
+        mode = 0777 & (~process.umask());
+    }
+    
+    if (!callback) {
+        callback = function () {};
+    }
+    
+    fs.stat(dirpath, function (err, stats) {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                mkpath(path.dirname(dirpath), mode, function (err) {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        fs.mkdir(dirpath, mode, callback);
+                    }
+                });
+            } else {
+                callback(err);
+            }
+        } else if (stats.isDirectory()) {
+            callback(null);
+        } else {
+            callback(new Error(dirpath + ' exists and is not a directory'));
+        }
+    });
+};
+
+mkpath.sync = function mkpathsync(dirpath, mode) {
+    dirpath = path.resolve(dirpath);
+    
+    if (typeof mode === 'undefined') {
+        mode = 0777 & (~process.umask());
+    }
+    
+    try {
+        if (!fs.statSync(dirpath).isDirectory()) {
+            throw new Error(dirpath + ' exists and is not a directory');
+        }
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            mkpathsync(path.dirname(dirpath), mode);
+            fs.mkdirSync(dirpath, mode);
+        } else {
+            throw err;
+        }
+    }
+};
+
+module.exports = mkpath;
+
+
+}).call(this,require('_process'))
+},{"_process":221,"fs":2,"path":220}],306:[function(require,module,exports){
 (function (process){
 var os = require('os')
 var path = require('path')
@@ -38195,7 +38347,7 @@ if (path.datadir == null) {
 module.exports = path
 
 }).call(this,require('_process'))
-},{"_process":221,"os":219,"path":220}],305:[function(require,module,exports){
+},{"_process":221,"os":219,"path":220}],307:[function(require,module,exports){
 (function (process,Buffer){
 'use strict';
 
@@ -39517,7 +39669,7 @@ exports.print = utils.print;
 exports.Multi = Multi;
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"./lib/command":306,"./lib/parsers/hiredis":307,"./lib/parsers/javascript":308,"./lib/utils":309,"_process":221,"buffer":18,"double-ended-queue":310,"events":214,"net":2,"redis-commands":312,"tls":2,"url":247,"util":250}],306:[function(require,module,exports){
+},{"./lib/command":308,"./lib/parsers/hiredis":309,"./lib/parsers/javascript":310,"./lib/utils":311,"_process":221,"buffer":18,"double-ended-queue":312,"events":214,"net":2,"redis-commands":314,"tls":2,"url":247,"util":250}],308:[function(require,module,exports){
 'use strict';
 
 // This Command constructor is ever so slightly faster than using an object literal, but more importantly, using
@@ -39532,13 +39684,18 @@ function Command(command, args, sub_command, buffer_args, callback) {
 
 module.exports = Command;
 
-},{}],307:[function(require,module,exports){
+},{}],309:[function(require,module,exports){
 'use strict';
 
-var hiredis = require('hiredis');
+var hiredisTemp = 'hiredis';
+var hiredis = require(hiredisTemp);
+
 
 function HiredisReplyParser(return_buffers) {
     this.name = exports.name;
+    if (!hiredis) {
+        return
+    }
     this.reader = new hiredis.Reader({
         return_buffers: return_buffers
     });
@@ -39571,7 +39728,7 @@ HiredisReplyParser.prototype.execute = function (data) {
 exports.Parser = HiredisReplyParser;
 exports.name = 'hiredis';
 
-},{"hiredis":undefined}],308:[function(require,module,exports){
+},{}],310:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -39742,7 +39899,7 @@ exports.Parser = JavascriptReplyParser;
 exports.name = 'javascript';
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":18,"util":250}],309:[function(require,module,exports){
+},{"buffer":18,"util":250}],311:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -39812,7 +39969,7 @@ module.exports = {
 };
 
 }).call(this,{"isBuffer":require("../../../../browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
-},{"../../../../browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":217}],310:[function(require,module,exports){
+},{"../../../../browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":217}],312:[function(require,module,exports){
 /**
  * Copyright (c) 2013 Petka Antonov
  * 
@@ -40089,7 +40246,7 @@ function getCapacity(capacity) {
 
 module.exports = Deque;
 
-},{}],311:[function(require,module,exports){
+},{}],313:[function(require,module,exports){
 module.exports={
   "append": {
     "arity": 3,
@@ -41847,7 +42004,7 @@ module.exports={
     "step": 0
   }
 }
-},{}],312:[function(require,module,exports){
+},{}],314:[function(require,module,exports){
 'use strict';
 
 var commands = require('./commands');
@@ -41985,7 +42142,7 @@ function getExternalKeyNameLength(key) {
   return hashPos === -1 ? key.length : hashPos;
 }
 
-},{"./commands":311}],313:[function(require,module,exports){
+},{"./commands":313}],315:[function(require,module,exports){
 var util = require('util')
 var events = require('events')
 var redis = require('redis')
@@ -42107,7 +42264,7 @@ DataStorage.prototype.hkeys = function (hash, callback) {
 
 module.exports = DataStorage
 
-},{"./filesystem.js":314,"./localstorage.js":315,"events":214,"redis":305,"util":250}],314:[function(require,module,exports){
+},{"./filesystem.js":316,"./localstorage.js":317,"events":214,"redis":307,"util":250}],316:[function(require,module,exports){
 var path = require('path-extra')
 var mkpath = require('mkpath')
 var jf = require('jsonfile')
@@ -42199,7 +42356,7 @@ var safePathWrite = function (file, content, callback) {
   }
 }
 
-},{"jsonfile":316,"mkpath":317,"path-extra":304}],315:[function(require,module,exports){
+},{"jsonfile":304,"mkpath":305,"path-extra":306}],317:[function(require,module,exports){
 module.exports = LocalStorage
 
 function LocalStorage () {}
@@ -42259,159 +42416,7 @@ LocalStorage.prototype.hkeys = function (key) {
   return []
 }
 
-},{}],316:[function(require,module,exports){
-var fs = require('fs')
-
-function readFile (file, options, callback) {
-  if (callback == null) {
-    callback = options
-    options = {}
-  }
-
-  fs.readFile(file, options, function (err, data) {
-    if (err) return callback(err)
-
-    var obj
-    try {
-      obj = JSON.parse(data, options ? options.reviver : null)
-    } catch (err2) {
-      err2.message = file + ': ' + err2.message
-      return callback(err2)
-    }
-
-    callback(null, obj)
-  })
-}
-
-function readFileSync (file, options) {
-  options = options || {}
-  if (typeof options === 'string') {
-    options = {encoding: options}
-  }
-
-  var shouldThrow = 'throws' in options ? options.throws : true
-  var content = fs.readFileSync(file, options)
-
-  try {
-    return JSON.parse(content, options.reviver)
-  } catch (err) {
-    if (shouldThrow) {
-      err.message = file + ': ' + err.message
-      throw err
-    } else {
-      return null
-    }
-  }
-}
-
-function writeFile (file, obj, options, callback) {
-  if (callback == null) {
-    callback = options
-    options = {}
-  }
-
-  var spaces = typeof options === 'object' && options !== null
-    ? 'spaces' in options
-    ? options.spaces : this.spaces
-    : this.spaces
-
-  var str = ''
-  try {
-    str = JSON.stringify(obj, options ? options.replacer : null, spaces) + '\n'
-  } catch (err) {
-    if (callback) return callback(err, null)
-  }
-
-  fs.writeFile(file, str, options, callback)
-}
-
-function writeFileSync (file, obj, options) {
-  options = options || {}
-
-  var spaces = typeof options === 'object' && options !== null
-    ? 'spaces' in options
-    ? options.spaces : this.spaces
-    : this.spaces
-
-  var str = JSON.stringify(obj, options.replacer, spaces) + '\n'
-  // not sure if fs.writeFileSync returns anything, but just in case
-  return fs.writeFileSync(file, str, options)
-}
-
-var jsonfile = {
-  spaces: null,
-  readFile: readFile,
-  readFileSync: readFileSync,
-  writeFile: writeFile,
-  writeFileSync: writeFileSync
-}
-
-module.exports = jsonfile
-
-},{"fs":2}],317:[function(require,module,exports){
-(function (process){
-var fs = require('fs');
-var path = require('path');
-
-var mkpath = function mkpath(dirpath, mode, callback) {
-    dirpath = path.resolve(dirpath);
-    
-    if (typeof mode === 'function' || typeof mode === 'undefined') {
-        callback = mode;
-        mode = 0777 & (~process.umask());
-    }
-    
-    if (!callback) {
-        callback = function () {};
-    }
-    
-    fs.stat(dirpath, function (err, stats) {
-        if (err) {
-            if (err.code === 'ENOENT') {
-                mkpath(path.dirname(dirpath), mode, function (err) {
-                    if (err) {
-                        callback(err);
-                    } else {
-                        fs.mkdir(dirpath, mode, callback);
-                    }
-                });
-            } else {
-                callback(err);
-            }
-        } else if (stats.isDirectory()) {
-            callback(null);
-        } else {
-            callback(new Error(dirpath + ' exists and is not a directory'));
-        }
-    });
-};
-
-mkpath.sync = function mkpathsync(dirpath, mode) {
-    dirpath = path.resolve(dirpath);
-    
-    if (typeof mode === 'undefined') {
-        mode = 0777 & (~process.umask());
-    }
-    
-    try {
-        if (!fs.statSync(dirpath).isDirectory()) {
-            throw new Error(dirpath + ' exists and is not a directory');
-        }
-    } catch (err) {
-        if (err.code === 'ENOENT') {
-            mkpathsync(path.dirname(dirpath), mode);
-            fs.mkdirSync(dirpath, mode);
-        } else {
-            throw err;
-        }
-    }
-};
-
-module.exports = mkpath;
-
-
-}).call(this,require('_process'))
-},{"_process":221,"fs":2,"path":220}],318:[function(require,module,exports){
+},{}],318:[function(require,module,exports){
 // Copyright 2010-2012 Mikeal Rogers
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -79313,7 +79318,7 @@ Colu.prototype.getIssuedAssets = function (transactions, callback) {
 
 module.exports = Colu
 
-},{"./events.js":492,"async":1,"coloredcoinsd-wraper":254,"data-storage":313,"events":214,"hdwallet":755,"request":318,"util":250}],492:[function(require,module,exports){
+},{"./events.js":492,"async":1,"coloredcoinsd-wraper":254,"data-storage":315,"events":214,"hdwallet":755,"request":318,"util":250}],492:[function(require,module,exports){
 var util = require('util')
 var events = require('events')
 var io = require('socket.io-client')
@@ -81500,16 +81505,16 @@ function ripemd160(message) {
 
 }).call(this,require("buffer").Buffer)
 },{"buffer":18}],615:[function(require,module,exports){
-arguments[4][304][0].apply(exports,arguments)
-},{"_process":221,"dup":304,"os":219,"path":220}],616:[function(require,module,exports){
-arguments[4][305][0].apply(exports,arguments)
-},{"./lib/command":617,"./lib/parsers/hiredis":618,"./lib/parsers/javascript":619,"./lib/utils":620,"_process":221,"buffer":18,"double-ended-queue":621,"dup":305,"events":214,"net":2,"redis-commands":623,"tls":2,"url":247,"util":250}],617:[function(require,module,exports){
 arguments[4][306][0].apply(exports,arguments)
-},{"dup":306}],618:[function(require,module,exports){
+},{"_process":221,"dup":306,"os":219,"path":220}],616:[function(require,module,exports){
 arguments[4][307][0].apply(exports,arguments)
-},{"dup":307,"hiredis":undefined}],619:[function(require,module,exports){
+},{"./lib/command":617,"./lib/parsers/hiredis":618,"./lib/parsers/javascript":619,"./lib/utils":620,"_process":221,"buffer":18,"double-ended-queue":621,"dup":307,"events":214,"net":2,"redis-commands":623,"tls":2,"url":247,"util":250}],617:[function(require,module,exports){
 arguments[4][308][0].apply(exports,arguments)
-},{"buffer":18,"dup":308,"util":250}],620:[function(require,module,exports){
+},{"dup":308}],618:[function(require,module,exports){
+arguments[4][309][0].apply(exports,arguments)
+},{"dup":309}],619:[function(require,module,exports){
+arguments[4][310][0].apply(exports,arguments)
+},{"buffer":18,"dup":310,"util":250}],620:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -81580,22 +81585,22 @@ module.exports = {
 
 }).call(this,{"isBuffer":require("../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js")})
 },{"../../../../../../colu-nodejs/node_modules/browserify/node_modules/insert-module-globals/node_modules/is-buffer/index.js":217}],621:[function(require,module,exports){
-arguments[4][310][0].apply(exports,arguments)
-},{"dup":310}],622:[function(require,module,exports){
-arguments[4][311][0].apply(exports,arguments)
-},{"dup":311}],623:[function(require,module,exports){
 arguments[4][312][0].apply(exports,arguments)
-},{"./commands":622,"dup":312}],624:[function(require,module,exports){
+},{"dup":312}],622:[function(require,module,exports){
 arguments[4][313][0].apply(exports,arguments)
-},{"./filesystem.js":625,"./localstorage.js":626,"dup":313,"events":214,"redis":616,"util":250}],625:[function(require,module,exports){
+},{"dup":313}],623:[function(require,module,exports){
 arguments[4][314][0].apply(exports,arguments)
-},{"dup":314,"jsonfile":627,"mkpath":628,"path-extra":615}],626:[function(require,module,exports){
+},{"./commands":622,"dup":314}],624:[function(require,module,exports){
 arguments[4][315][0].apply(exports,arguments)
-},{"dup":315}],627:[function(require,module,exports){
+},{"./filesystem.js":625,"./localstorage.js":626,"dup":315,"events":214,"redis":616,"util":250}],625:[function(require,module,exports){
 arguments[4][316][0].apply(exports,arguments)
-},{"dup":316,"fs":2}],628:[function(require,module,exports){
+},{"dup":316,"jsonfile":627,"mkpath":628,"path-extra":615}],626:[function(require,module,exports){
 arguments[4][317][0].apply(exports,arguments)
-},{"_process":221,"dup":317,"fs":2,"path":220}],629:[function(require,module,exports){
+},{"dup":317}],627:[function(require,module,exports){
+arguments[4][304][0].apply(exports,arguments)
+},{"dup":304,"fs":2}],628:[function(require,module,exports){
+arguments[4][305][0].apply(exports,arguments)
+},{"_process":221,"dup":305,"fs":2,"path":220}],629:[function(require,module,exports){
 arguments[4][318][0].apply(exports,arguments)
 },{"./lib/cookies":631,"./lib/helpers":634,"./request":754,"dup":318,"extend":655}],630:[function(require,module,exports){
 arguments[4][319][0].apply(exports,arguments)
