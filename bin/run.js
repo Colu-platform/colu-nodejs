@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 var path = require('path-extra')
 var express = require('express')
 var auth = require('basic-auth')
@@ -22,7 +23,6 @@ var serverSettingsPath = path.join(path.datadir('colu'), 'settings')
 try {
   settings = require(serverSettingsPath)
 } catch (e) {
-  console.error(e)
 }
 
 settings = settings || {}
