@@ -284,7 +284,7 @@ describe('JSON-RPC API tests', function() {
 
   it('Should get stakeholders.', function (done) {
     this.timeout(60000)
-    var params = {assetId : assetId}
+    var params = {assetId : assetId, numConfirmations: 0}
 		var body = createJsonRpcRequestObj('coloredCoins.getStakeHolders', params)
 		var contentLength = calculateObjectBytesLength(body)
 		request(url)
