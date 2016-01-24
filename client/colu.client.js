@@ -78855,12 +78855,12 @@ var afterDSInit = function (self, cb) {
   })
 }
 
-var buildTransaction = function (coluHost, apiKey, type, args, cb) {
+Colu.prototype.buildTransaction = function (type, args, cb) {
   var dataParams = {
     cc_args: args
   }
-  var path = coluHost + '/build_finance_'+ type
-  if (apiKey) path += '?token=' + apiKey
+  var path = this.coluHost + '/build_finance_'+ type
+  if (this.apiKey) path += '?token=' + this.apiKey
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
     if (!response || response.statusCode !== 200) return cb(body)
@@ -78934,7 +78934,7 @@ Colu.prototype.issueAsset = function (args, callback) {
       receivingAddresses = args.transfer
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      buildTransaction(self.coluHost, self.apiKey, 'issue', args, cb)
+      self.buildTransaction('issue', args, cb)
     },
     function (info, cb) {
       if (typeof info === 'function') return info('wrong server response')
@@ -78967,7 +78967,7 @@ Colu.prototype.sendAsset = function (args, callback) {
       }
       args.flags = args.flags || {}
       args.flags.injectPreviousOutput = true
-      buildTransaction(self.coluHost, self.apiKey, 'send', args, cb)
+      self.buildTransaction('send', args, cb)
     },
     function (info, cb) {
       sendInfo = info
