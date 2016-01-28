@@ -32,7 +32,6 @@ settings.colu.coluHost = settings.colu.coluHost || process.env.COLU_SDK_COLU_HOS
 settings.colu.apiKey = settings.colu.apiKey || process.env.COLU_SDK_API_KEY
 settings.colu.privateSeed = settings.colu.privateSeed || process.env.COLU_SDK_PRIVATE_SEED
 settings.colu.privateSeedWIF = settings.colu.privateSeedWIF || process.env.COLU_SDK_PRIVATE_SEED_WIF
-settings.colu.coloredCoinsHost = settings.colu.coloredCoinsHost || process.env.COLU_SDK_CC_HOST
 settings.colu.redisPort = settings.colu.redisPort || process.env.COLU_SDK_REDIS_PORT
 settings.colu.redisHost = settings.colu.redisHost || process.env.COLU_SDK_REDIS_HOST
 settings.server = settings.server || {}
