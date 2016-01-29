@@ -6,17 +6,6 @@ node_js:
   - '0.12'
 os:
   - linux
-  - osx
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    rm -rf ~/.nvm;
-    rm -rf ~/.nvm;
-    git clone https://github.com/creationix/nvm.git ~/.nvm;
-    source ~/.nvm/nvm.sh;
-    nvm install $NODE_VERSION;
-    node --version;
-    npm install;
-  fi
 before_script:
   - npm install -g istanbul
   - npm install -g mocha
