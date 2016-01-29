@@ -7,21 +7,21 @@ node_js:
 os:
   - linux
   - osx
-before_script:
-  - npm install -g istanbul
-  - npm install -g mocha
-  - npm install -g coveralls
-after_script:
-  - npm run coveralls
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     rm -rf ~/.nvm;
-    rm -rf ~/.nvm
+    rm -rf ~/.nvm;
     git clone https://github.com/creationix/nvm.git ~/.nvm;
     source ~/.nvm/nvm.sh;
     nvm install $NODE_VERSION;
     node --version;
     npm install;
   fi
+before_script:
+  - npm install -g istanbul
+  - npm install -g mocha
+  - npm install -g coveralls
+after_script:
+  - npm run coveralls
 services:
   - redis-server
