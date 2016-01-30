@@ -13,6 +13,8 @@ before_install:
   - source /tmp/.nvm/nvm.sh
   - nvm install $TRAVIS_NODE_VERSION
   - nvm use --delete-prefix $TRAVIS_NODE_VERSION
+install:
+  - npm install
 before_script:
   - npm install -g istanbul
   - npm install -g mocha
