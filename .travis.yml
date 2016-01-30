@@ -1,4 +1,3 @@
-language: cpp
 env:
   #"node" is the latest version
   - TRAVIS_NODE_VERSION="node"
