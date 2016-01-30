@@ -12,11 +12,13 @@ before_install:
   - git clone https://github.com/creationix/nvm.git /tmp/.nvm
   - source /tmp/.nvm/nvm.sh
   - nvm install $TRAVIS_NODE_VERSION
-  - nvm use $TRAVIS_NODE_VERSION
+  - nvm use --delete-prefix $TRAVIS_NODE_VERSION
 before_script:
   - npm install -g istanbul
   - npm install -g mocha
   - npm install -g coveralls
+script: 
+  - npm test
 after_script:
   - npm run coveralls
 services:
