@@ -78868,8 +78868,8 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
   })
 }
 
-var signAndTransmit = function (self, txHex, lastTxid, callback) {
-
+Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
+  var self = this
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
   if (!addresses) return callback('can\'t find addresses to fund')
   async.map(addresses,
@@ -78879,17 +78879,17 @@ var signAndTransmit = function (self, txHex, lastTxid, callback) {
     function (err, privateKeys) {
       if (err) return callback(err)
       var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-      transmit(self.coluHost, signedTxHex, lastTxid, callback)
+      self.transmit(signedTxHex, lastTxid, callback)
     }
   )
 }
 
-var transmit = function (coluHost, signedTxHex, lastTxid, callback) {
+Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
   var dataParams = {
     last_txid: lastTxid,
     tx_hex: signedTxHex
   },
-  path = coluHost + '/transmit_financed'
+  path = this.coluHost + '/transmit_financed'
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) return callback(body)
@@ -78941,7 +78941,7 @@ Colu.prototype.issueAsset = function (args, callback) {
       if (!info || !info.txHex) return cb('wrong server response')
       assetInfo = info
       lastTxid = assetInfo.financeTxid
-      signAndTransmit(self, assetInfo.txHex, lastTxid, cb)
+      self.signAndTransmit(assetInfo.txHex, lastTxid, cb)
     },
     function (body, cb) {
       assetInfo.txid = body.txid2.txid
@@ -78973,7 +78973,7 @@ Colu.prototype.sendAsset = function (args, callback) {
       sendInfo = info
       lastTxid = sendInfo.financeTxid
 
-      signAndTransmit(self, sendInfo.txHex, lastTxid, cb)
+      self.signAndTransmit(sendInfo.txHex, lastTxid, cb)
     },
     function (body, cb) {
       sendInfo.txid = body.txid2.txid
