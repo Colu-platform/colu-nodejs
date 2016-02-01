@@ -11,6 +11,8 @@ var Events = require('./events.js')
 var mainnetColuHost = 'https://engine.colu.co'
 var testnetColuHost = 'https://testnet.engine.colu.co'
 
+var sendingMethods = ['address', 'phone_number', 'phoneNumber', 'facebook', 'facebookId', 'email']
+
 var Colu = function (settings) {
   var self = this
   self.initiated = false
@@ -156,7 +158,15 @@ Colu.prototype.issueAsset = function (args, callback) {
 
       var sendingAmount = parseInt(args.amount, 10)
       args.transfer.forEach(function (to) {
-        to.address = to.address || args.issueAddress
+        var sendingMethod = null
+        Object.keys(to).forEach(function (key) {
+          if (~sendingMethods.indexOf(key)) {
+            sendingMethod = key
+          }
+        })
+        if (!sendingMethod) {
+          to.address = args.issueAddress
+        }
         sendingAmount -= parseInt(to.amount, 10)
       })
       if (sendingAmount > 0) {
