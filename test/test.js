@@ -22,7 +22,6 @@ describe('Test Colu SDK', function () {
   catch (e) {
     settings = {
       network: 'testnet',
-      coluHost: 'https://testnet.engine.colu.co',
       events: true,
       eventsSecure: true,
     }
