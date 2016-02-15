@@ -40,3 +40,25 @@ By default it will be hosted at : 127.0.0.1:80 and will be locked to local host 
 ```sh
 $ mocha
 ```
+
+### Docker
+
+#### Build image
+```
+	docker build -t coluapi .
+```
+
+#### Run image in a container
+
+```
+	docker run -p 8080:80 -it coluapi
+```
+You should now be able to make your api calls to port 8080 on your host machine (or select another port, say 1234, by running instead with `docker run -p 1234:80 -it coluapi`)
+
+#### View your container running
+````
+  docker ps
+````
+
+#### Stopping the container
+Since we are running in interactive shell mode `-it` you can stop the container by hitting `CTRL+c`
