@@ -1,6 +1,6 @@
 FROM node:latest
 
-# update OS
+# update Linux OS
 RUN apt-get -y update
 
 # install redis
@@ -21,12 +21,12 @@ RUN chmod -R a+w /var/log/
 # install colu
 RUN npm i -g colu
 
-# in mainnet, change the network (testnet -> mainnet) and add your API key (https://www.colu.co/getapikey)
+# set colu env vars. in mainnet, change the network (testnet -> mainnet) and add your API key (https://www.colu.co/getapikey)
 ENV COLU_SDK_NETWORK testnet
 ENV COLU_SDK_API_KEY your_api_key_here
 ENV COLU_SDK_RPC_SERVER_HTTP_PORT 80
 ENV COLU_SDK_RPC_SERVER_HOST 0.0.0.0
 ENV COLU_SDK_REDIS_PORT 6379
 
-# start redis and colu server
+# start redis and colu servers
 CMD redis-server & node $(which colu)
