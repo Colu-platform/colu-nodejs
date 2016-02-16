@@ -13,8 +13,6 @@ RUN mkdir -p /etc/redis
 RUN mkdir -p /var/redis
 RUN mkdir -p /var/redis/6379
 RUN cp redis-stable/utils/redis_init_script /etc/init.d/redis_6379
-ADD redis.conf /tmp/6379.conf
-RUN cp /tmp/6379.conf /etc/redis/6379.conf
 RUN update-rc.d redis_6379 defaults
 RUN chmod -R a+w /var/redis/
 RUN chmod -R a+w /var/run/
