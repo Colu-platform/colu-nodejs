@@ -45,15 +45,15 @@ $ mocha
 
 #### Build image
 ```
-	docker build -t coluapi .
+	docker build -t colunodejs .
 ```
 
 #### Run image in a container
 
 ```
-	docker run -p 8080:80 -it coluapi
+	docker run -p 8080:80 -it colunodejs
 ```
-You should now be able to make your api calls to port 8080 on your host machine (or select another port, say 1234, by running instead with `docker run -p 1234:80 -it coluapi`)
+You should now be able to make your api calls to port 8080 on your host machine (or select another port, say 1234, by running instead with `docker run -p 1234:80 -it colunodejs`)
 
 #### View your container running
 ````
@@ -61,4 +61,4 @@ You should now be able to make your api calls to port 8080 on your host machine 
 ````
 
 #### Stopping the container
-Since we are running in interactive shell mode `-it` you can stop the container by hitting `CTRL+c`
+Since we are running in interactive shell mode `-it` you can stop the container by pressing `CTRL+C`
