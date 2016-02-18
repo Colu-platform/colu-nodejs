@@ -31,3 +31,4 @@ properties.conf
 bin/playground.js
 test/settings.js
 test/settings.json
+typings/

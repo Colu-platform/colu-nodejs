@@ -1,0 +1,36 @@
+{
+  "version": "v4",
+  "repo": "borisyankov/DefinitelyTyped",
+  "ref": "master",
+  "path": "typings",
+  "bundle": "typings/tsd.d.ts",
+  "installed": {
+    "mime/mime.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "express/express.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "serve-static/serve-static.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "node/node.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "morgan/morgan.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "basic-auth/basic-auth.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "async/async.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "form-data/form-data.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    },
+    "request/request.d.ts": {
+      "commit": "99c4fb76b5d941939ba53e61d0daee4bd74f150f"
+    }
+  }
+}
