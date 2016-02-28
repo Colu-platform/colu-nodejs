@@ -5,16 +5,6 @@ var expect = require('chai').expect
 
 describe('Test Colu SDK', function () {
 
-  var toAddress = 'mgNcWJp4hPd7MN6ets2P8HcB5k99aCs8cy'
-  var assetId
-  var fromAddress
-  var phoneNumber = '+1234567890'
-  var assetName = 'test_assetName'
-  var issuer = 'test_issuer'
-  var description = 'test_description'
-  var icon = 'https://www.colu.co/layout/img/colu.png'
-  var utxo
-
   var settings
   try {
     settings = require('./settings')

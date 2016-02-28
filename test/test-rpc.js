@@ -51,7 +51,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.be.null
 	   		expect(res.body.error).to.be.a('object')
@@ -73,7 +73,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.a('object')
@@ -95,7 +95,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.a('object')
@@ -117,7 +117,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -141,7 +141,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -164,7 +164,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -186,7 +186,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -196,7 +196,7 @@ describe('JSON-RPC API tests', function() {
   })
 
   it('Should create and broadcast send tx to phone.', function (done) {
-    this.timeout(10000)
+    this.timeout(15000)
     var params = testUtils.createSendAssetToPhoneArgs()
 		var body = createJsonRpcRequestObj('sendAsset', params)
 		var contentLength = calculateObjectBytesLength(body)
@@ -208,7 +208,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -229,7 +229,30 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-	      assert.ifError(err)
+	      if (err) return done(err)
+	   		expect(res.body.jsonrpc).to.equal('2.0')
+	   		expect(res.body.id).to.equal(body.id)
+	   		expect(res.body.error).to.be.undefined
+	      expect(res.body.result).to.be.a('array')
+	      expect(res.body.result).to.have.length.above(0)
+	      done()
+    })
+  })
+
+  it('Should return transactions list for a specific address.', function (done) {
+    this.timeout(10000)
+    var params = {addresses: [address]}
+		var body = createJsonRpcRequestObj('getTransactions', params)
+		var contentLength = calculateObjectBytesLength(body)
+		request(url)
+	   	.post('/')
+	   	.send(body)
+	   	.set('Accept', 'application/json')
+	   	.set('Content-Type', 'application/json')
+	   	.set('Content-Length', contentLength)
+	   	.expect(200)
+	   	.end(function (err, res) {
+	      if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -251,7 +274,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-      	assert.ifError(err)
+      	if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -273,7 +296,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
-	      assert.ifError(err)
+	      if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -295,7 +318,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 	   	.end(function (err, res) {
- 	      assert.ifError(err)
+ 	      if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -318,7 +341,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -341,7 +364,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -363,7 +386,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -385,7 +408,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -408,7 +431,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined
@@ -430,7 +453,7 @@ describe('JSON-RPC API tests', function() {
 	   	.set('Content-Length', contentLength)
 	   	.expect(200)
 			.end(function (err, res) {
-				assert.ifError(err)
+				if (err) return done(err)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
 	   		expect(res.body.error).to.be.undefined

@@ -64,6 +64,7 @@ app.use(morgan)
 
 app.use(function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'POST')
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
   next()
 })
@@ -82,6 +83,10 @@ if (settings.server.useBasicAuth && settings.server.userName && settings.server.
 }
 
 app.use(jsonrpc())
+
+app.options('/', function (req, res, next) {
+    res.status(200).end();
+});
 
 app.post('/', function (req, res, next) {
   if (!req.body) return
@@ -121,19 +126,20 @@ app.post('/', function (req, res, next) {
 
         orderedParams.push(params[paramName])
       }
+    }
 
-      var optional = methods[req.body.method].optional
-      if (optional) {
-        for (i = 0; i < optional.length; i++) {
-          // now without throwing an error...
-          paramName = optional[i]
+    var optional = methods[req.body.method].optional
+    if (optional && params) {
+      for (i = 0; i < optional.length; i++) {
+        //now without throwing an error...
+        paramName = optional[i]
+        if (params[paramName]) {
           orderedParams.push(params[paramName])
         }
       }
     }
 
     /* call the method (with or without callback) */
-
     methodObj = getMethodObj(req.body.method)
     if (!methods[req.body.method].callback) {
       var result = methodObj.method.apply(methodObj.thisObj, orderedParams)
