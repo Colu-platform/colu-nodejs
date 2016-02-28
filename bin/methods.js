@@ -26,6 +26,14 @@ module.exports = {
     'optional': ['full'],
     'callback': true
   },
+  'buildTransaction': {
+    'params': ['type', 'args'],
+    'callback': true
+  },
+  'transmit': {
+    'params': ['signedTxHex', 'lastTxid'],
+    'callback': true
+  },
 
   /* Colored Coins */
 
