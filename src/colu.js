@@ -123,10 +123,10 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
 
 Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
   var dataParams = {
-      last_txid: lastTxid,
-      tx_hex: signedTxHex
-    },
-    path = this.coluHost + '/transmit_financed'
+    last_txid: lastTxid,
+    tx_hex: signedTxHex
+  }
+  var path = this.coluHost + '/transmit_financed'
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) return callback(body)

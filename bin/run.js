@@ -25,24 +25,29 @@ try {
 
 settings = settings || {}
 settings.colu = settings.colu || {}
-settings.colu.network = settings.colu.network || process.env.COLU_SDK_NETWORK
-settings.colu.coluHost = settings.colu.coluHost || process.env.COLU_SDK_COLU_HOST
-settings.colu.apiKey = settings.colu.apiKey || process.env.COLU_SDK_API_KEY
-settings.colu.privateSeed = settings.colu.privateSeed || process.env.COLU_SDK_PRIVATE_SEED
-settings.colu.privateSeedWIF = settings.colu.privateSeedWIF || process.env.COLU_SDK_PRIVATE_SEED_WIF
-settings.colu.redisPort = settings.colu.redisPort || process.env.COLU_SDK_REDIS_PORT
-settings.colu.redisHost = settings.colu.redisHost || process.env.COLU_SDK_REDIS_HOST
+settings.colu.network = settings.colu.network || process.env.COLU_SDK_NETWORK // Optional: Possible values are testnet and mainnet. Default value is mainnet
+settings.colu.coluHost = settings.colu.coluHost || process.env.COLU_SDK_COLU_HOST // Optional
+settings.colu.apiKey = settings.colu.apiKey || process.env.COLU_SDK_API_KEY // Mandatory in case COLU_SDK_NETWORK is mainnet
+settings.colu.privateSeed = settings.colu.privateSeed || process.env.COLU_SDK_PRIVATE_SEED // Optional (otherwise generate new one every server start)
+settings.colu.privateSeedWIF = settings.colu.privateSeedWIF || process.env.COLU_SDK_PRIVATE_SEED_WIF // Optional (otherwise generate new one every server start)
+// Note: only one of COLU_SDK_PRIVATE_SEED and COLU_SDK_PRIVATE_SEED_WIF should be filled
+settings.colu.redisPort = settings.colu.redisPort || process.env.COLU_SDK_REDIS_PORT // Optional
+settings.colu.redisHost = settings.colu.redisHost || process.env.COLU_SDK_REDIS_HOST // Optional
+
 settings.server = settings.server || {}
-settings.server.httpPort = settings.server.httpPort || process.env.COLU_SDK_RPC_SERVER_HTTP_PORT || process.env.PORT || 80
-settings.server.httpsPort = settings.server.httpsPort || process.env.COLU_SDK_RPC_SERVER_HTTPS_PORT || 443
-settings.server.host = settings.server.host || process.env.COLU_SDK_RPC_SERVER_HOST || '127.0.0.1'
-settings.server.usessl = settings.server.usessl || (process.env.COLU_SDK_RPC_USE_SSL === 'true')
-settings.server.privateKeyPath = settings.server.privateKeyPath || process.env.COLU_SDK_RPC_PRIVATE_KEY_PATH
-settings.server.certificatePath = settings.server.certificatePath || process.env.COLU_SDK_RPC_CERTIFICATE_PATH
-settings.server.useBasicAuth = settings.server.useBasicAuth || (process.env.COLU_SDK_RPC_USE_BASIC_AUTH === 'true')
-settings.server.userName = settings.server.userName || process.env.COLU_SDK_RPC_USER_NAME
-settings.server.password = settings.server.password || process.env.COLU_SDK_RPC_PASSWORD
-settings.server.useBoth = settings.server.useBoth || (process.env.COLU_SDK_RPC_USE_BOTH === 'true') // both HTTP and HTTPS
+
+settings.server.httpPort = settings.server.httpPort || process.env.COLU_SDK_RPC_SERVER_HTTP_PORT || process.env.PORT || 80 // Optional
+settings.server.httpsPort = settings.server.httpsPort || process.env.COLU_SDK_RPC_SERVER_HTTPS_PORT || 443 // Optional
+settings.server.host = settings.server.host || process.env.COLU_SDK_RPC_SERVER_HOST || '127.0.0.1' // Optional
+
+settings.server.usessl = settings.server.usessl || (process.env.COLU_SDK_RPC_USE_SSL === 'true') // Optional
+settings.server.useBoth = settings.server.useBoth || (process.env.COLU_SDK_RPC_USE_BOTH === 'true') // both HTTP and HTTPS - Optional
+settings.server.privateKeyPath = settings.server.privateKeyPath || process.env.COLU_SDK_RPC_PRIVATE_KEY_PATH // Mandatory in case COLU_SDK_RPC_USE_SSL or COLU_SDK_RPC_USE_BOTH is true
+settings.server.certificatePath = settings.server.certificatePath || process.env.COLU_SDK_RPC_CERTIFICATE_PATH // Mandatory in case COLU_SDK_RPC_USE_SSL or COLU_SDK_RPC_USE_BOTH is true
+
+settings.server.useBasicAuth = settings.server.useBasicAuth || (process.env.COLU_SDK_RPC_USE_BASIC_AUTH === 'true') // Optional
+settings.server.userName = settings.server.userName || process.env.COLU_SDK_RPC_USER_NAME // Manadatory in case COLU_SDK_RPC_USE_BASIC_AUTH is true
+settings.server.password = settings.server.password || process.env.COLU_SDK_RPC_PASSWORD // Manadatory in case COLU_SDK_RPC_USE_BASIC_AUTH is true
 
 if (settings.server.usessl && settings.server.privateKeyPath && settings.server.certificatePath) {
   try {
