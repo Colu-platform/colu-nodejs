@@ -116,12 +116,14 @@ app.post('/', function (req, res, next) {
 
         orderedParams.push(params[paramName])
       }
+    }
 
-      var optional = methods[req.body.method].optional
-      if (optional) {
-        for (i = 0; i < optional.length; i++) {
-          // now without throwing an error...
-          paramName = optional[i]
+    var optional = methods[req.body.method].optional
+    if (optional && params) {
+      for (i = 0; i < optional.length; i++) {
+        //now without throwing an error...
+        paramName = optional[i]
+        if (params[paramName]) {
           orderedParams.push(params[paramName])
         }
       }

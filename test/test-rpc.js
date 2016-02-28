@@ -239,6 +239,29 @@ describe('JSON-RPC API tests', function() {
     })
   })
 
+  it('Should return transactions list for a specific address.', function (done) {
+    this.timeout(10000)
+    var params = {addresses: [address]}
+		var body = createJsonRpcRequestObj('getTransactions', params)
+		var contentLength = calculateObjectBytesLength(body)
+		request(url)
+	   	.post('/')
+	   	.send(body)
+	   	.set('Accept', 'application/json')
+	   	.set('Content-Type', 'application/json')
+	   	.set('Content-Length', contentLength)
+	   	.expect(200)
+	   	.end(function (err, res) {
+	      assert.ifError(err)
+	   		expect(res.body.jsonrpc).to.equal('2.0')
+	   		expect(res.body.id).to.equal(body.id)
+	   		expect(res.body.error).to.be.undefined
+	      expect(res.body.result).to.be.a('array')
+	      expect(res.body.result).to.have.length.above(0)
+	      done()
+    })
+  })
+
   it('Should return issuances list for this wallet.', function (done) {
     this.timeout(15000)
 		var body = createJsonRpcRequestObj('getIssuedAssets')
