@@ -109,9 +109,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('object')
 	   		testUtils.verifyIsssueAssetResponse(res.body.result)
 	   		address = res.body.result.issueAddress
@@ -133,9 +133,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('array')
 	      expect(res.body.result).to.have.length.above(0)
 	      done()
@@ -143,7 +143,7 @@ describe('JSON-RPC API tests', function() {
   })
 
   it('Should create and broadcast send tx from utxo.', function (done) {
-    this.timeout(10000)
+    this.timeout(15000)
     var params = testUtils.createSendAssetFromUtxoArgs()
 		var body = createJsonRpcRequestObj('sendAsset', params)
 		var contentLength = calculateObjectBytesLength(body)
@@ -156,9 +156,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			testUtils.verifySendAssetResponse(res.body.result)
 	      done()
    	})
@@ -178,9 +178,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			testUtils.verifySendAssetResponse(res.body.result)
 	      done()
    	})
@@ -200,9 +200,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			testUtils.verifySendAssetResponse(res.body.result)
 	      done()
    	})
@@ -221,9 +221,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 	      if (err) return done(err)
+	      if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
 	      expect(res.body.result).to.be.a('array')
 	      expect(res.body.result).to.have.length.above(0)
 	      done()
@@ -244,9 +244,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 	      if (err) return done(err)
+      	if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
 	      expect(res.body.result).to.be.a('array')
 	      expect(res.body.result).to.have.length.above(0)
 	      done()
@@ -266,9 +266,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
       	if (err) return done(err)
+    		if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
 	      testUtils.verifyGetIssuedAssetsResponse(res.body.result)
      	 	done()
     })
@@ -288,9 +288,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
 	      if (err) return done(err)
+      	if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
 	      testUtils.verifyGetAssetMetadataResponse(res.body.result)
 	      done()
     })
@@ -310,9 +310,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 	   	.end(function (err, res) {
  	      if (err) return done(err)
+      	if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
 	   		expect(res.body.result.assetId).to.equal(assetId)
 	   		expect(res.body.result.holders).to.be.a('array')
 	      expect(res.body.result.holders).to.have.length.above(0)
@@ -333,9 +333,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('string')
 				expect(res.body.result).to.have.length.above(0)
 	   		done()	
@@ -356,9 +356,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('string')
 				expect(res.body.result).to.have.length.above(0)
 	   		done()	
@@ -378,9 +378,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('string')
 				expect(res.body.result).to.have.length.above(0)
 	   		done()	
@@ -400,9 +400,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('string')
 				expect(res.body.result).to.have.length.above(0)
 	   		done()	
@@ -423,9 +423,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('string')
 				expect(res.body.result).to.have.length.above(0)
 	   		done()	
@@ -445,9 +445,9 @@ describe('JSON-RPC API tests', function() {
 	   	.expect(200)
 			.end(function (err, res) {
 				if (err) return done(err)
+				if (res.body.error) return done(res.body.error)
 	   		expect(res.body.jsonrpc).to.equal('2.0')
 	   		expect(res.body.id).to.equal(body.id)
-	   		expect(res.body.error).to.be.undefined
    			expect(res.body.result).to.be.a('string')
 				expect(res.body.result).to.have.length.above(0)
 	   		done()	

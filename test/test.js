@@ -1,6 +1,5 @@
 var Colu = require('../src/colu')
 var testUtils = require('./test-utils')
-var assert = require('chai').assert
 var expect = require('chai').expect
 
 describe('Test Colu SDK', function () {
@@ -25,7 +24,7 @@ describe('Test Colu SDK', function () {
     colu.on('connect', function () {
       var args = testUtils.createIssueAssetArgs();
       colu.issueAsset(args, function (err, ans) {
-        assert.ifError(err)
+        if (err) return done(err)
         testUtils.verifyIsssueAssetResponse(ans)
         done()
       })
@@ -36,7 +35,7 @@ describe('Test Colu SDK', function () {
   it('Should return assets list for this wallet.', function (done) {
     this.timeout(10000)
     colu.getAssets(function (err, assets) {
-      assert.ifError(err)
+      if (err) return done(err)
       expect(assets).to.be.a('array')
       expect(assets).to.have.length.above(0)
       done()
@@ -47,7 +46,7 @@ describe('Test Colu SDK', function () {
     this.timeout(100000)
     var args = testUtils.createSendAssetFromUtxoArgs()
     colu.sendAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       testUtils.verifySendAssetResponse(ans)
       done()
     })
@@ -57,7 +56,7 @@ describe('Test Colu SDK', function () {
     this.timeout(100000)
     var args = testUtils.createSendAssetFromAddressArgs();
     colu.sendAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       testUtils.verifySendAssetResponse(ans)
       done()
     })
@@ -67,7 +66,7 @@ describe('Test Colu SDK', function () {
     this.timeout(100000)
     var args = testUtils.createSendAssetToPhoneArgs();
     colu.sendAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       testUtils.verifySendAssetResponse(ans)
       done()
     })
@@ -76,7 +75,7 @@ describe('Test Colu SDK', function () {
   it('Should return transactions list for this wallet.', function (done) {
     this.timeout(5000)
     colu.getTransactions(function (err, transactions) {
-      assert.ifError(err)
+      if (err) return done(err)
       expect(transactions).to.be.a('array')
       expect(transactions).to.have.length.above(0)
       done()
@@ -86,7 +85,7 @@ describe('Test Colu SDK', function () {
   it('Should return issuances list for this wallet.', function (done) {
     this.timeout(5000)
     colu.getIssuedAssets(function (err, issuances) {
-      assert.ifError(err)
+      if (err) return done(err)
       testUtils.verifyGetIssuedAssetsResponse(issuances)
       done()
     })
@@ -96,7 +95,7 @@ describe('Test Colu SDK', function () {
     this.timeout(10000)
     var args = testUtils.createGetAssetMetadataArgs()
     colu.getAssetMetadata(args.assetId, args.utxo, true, function (err, metadata) {
-      assert.ifError(err)
+      if (err) return done(err)
       testUtils.verifyGetAssetMetadataResponse(metadata)
       done()
     })
@@ -106,7 +105,7 @@ describe('Test Colu SDK', function () {
     // this time with shorter default timeout
     var args = testUtils.createGetAssetMetadataArgs()
     colu.getAssetMetadata(args.assetId, args.utxo, false, function (err, metadata) {
-      assert.ifError(err)
+      if (err) return done(err)
       testUtils.verifyGetAssetMetadataResponse(metadata)
       done()
     })
