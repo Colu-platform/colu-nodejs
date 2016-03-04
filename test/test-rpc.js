@@ -18,25 +18,16 @@ describe('JSON-RPC API tests', function() {
 		portfinder.getPort(function (err, port) {
 			assert.ifError(err)
 			oldEnv = {
-				network: process.env.COLU_SDK_NETWORK,
-				host: process.env.COLU_SDK_COLU_HOST,
-				port: process.env.COLU_SDK_RPC_SERVER_HTTP_PORT,
-				usessl: (process.env.COLU_SDK_RPC_USE_SSL === 'true')
+				port: process.env.COLU_SDK_RPC_SERVER_HTTP_PORT
 			}
-			process.env.COLU_SDK_NETWORK = 'testnet'
-			process.env.COLU_SDK_COLU_HOST = 'https://testnet.engine.colu.co'
 			process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = port
-			process.env.COLU_SDK_RPC_USE_SSL = false
 			url = url + ':' + port
 			server = require('../bin/run')
 		})
 	})
 
 	after(function() {
-			process.env.COLU_SDK_NETWORK = oldEnv.network
-			process.env.COLU_SDK_COLU_HOST = oldEnv.host
 			process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = oldEnv.port
-			process.env.COLU_SDK_RPC_USE_SSL = oldEnv.usessl
 	})
 
 	it('Should return an \'Invalid request\' error.', function (done) {
