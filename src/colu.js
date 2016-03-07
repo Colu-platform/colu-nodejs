@@ -406,6 +406,7 @@ Colu.prototype.onNewTransaction = function (callback) {
   if (!self.events) return false
   if (self.eventsSecure) {
     self.events.on('newtransaction', function (data) {
+      self.hdwallet.discover()
       if (isLocalTransaction(self.addresses, data.newtransaction)) {
         callback(data.newtransaction)
       }
@@ -429,6 +430,7 @@ Colu.prototype.onNewCCTransaction = function (callback) {
   if (!self.events) return false
   if (self.eventsSecure) {
     self.events.on('newcctransaction', function (data) {
+      self.hdwallet.discover()
       if (isLocalTransaction(self.addresses, data.newcctransaction)) {
         callback(data.newcctransaction)
       }
@@ -477,6 +479,7 @@ var registerAddress = function (self, address, addresses, transactions, callback
   if (!~addresses.indexOf(address)) {
     var channel = 'address/' + address
     self.events.on(channel, function (data) {
+      self.hdwallet.discover()
       var transaction = data.transaction
       if (!~transactions.indexOf(transaction.txid)) {
         transactions.push(transaction.txid)

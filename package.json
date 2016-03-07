@@ -56,7 +56,7 @@
     "data-storage": "~0.0.7",
     "express": "^4.13.3",
     "fs": "0.0.2",
-    "hdwallet": "~0.4.14",
+    "hdwallet": "~0.4.19",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
     "morgan": "^1.6.1",
