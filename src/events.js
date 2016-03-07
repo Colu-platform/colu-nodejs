@@ -8,10 +8,10 @@ function Events (args) {
   self.rooms = [{
     room: 'transaction',
     key: 'txid'
-  },{
+  }, {
     room: 'address',
     key: 'address'
-  },{
+  }, {
     room: 'asset',
     key: 'assetId'
   }]
@@ -32,7 +32,7 @@ function Events (args) {
     self.socket.on('transaction', function (data) {
       self.rooms.forEach(function (room) {
         if (data[room.key]) {
-          self.emit(room.room+'/'+data[room.key], data)
+          self.emit(room.room + '/' + data[room.key], data)
         }
       })
     })

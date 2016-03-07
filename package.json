@@ -1,6 +1,6 @@
 {
   "name": "colu",
-  "version": "0.10.6",
+  "version": "0.10.8",
   "description": "Colu SDK for engine and colored-coins api.",
   "main": "src/colu.js",
   "scripts": {
@@ -34,6 +34,10 @@
     {
       "name": "Eliran Zach",
       "email": "thehobbit85@gmail.com"
+    },
+    {
+      "name": "Oded Leiba",
+      "email": "oded@colu.co"
     }
   ],
   "license": "https://www.colu.co/TOS",
@@ -55,7 +59,6 @@
     "hdwallet": "~0.4.14",
     "jsonfile": "^2.2.1",
     "mkpath": "^0.1.0",
-    "mocha": "^2.3.4",
     "morgan": "^1.6.1",
     "node-express-json-rpc2-async": "^1.0.2",
     "path-extra": "^1.0.3",

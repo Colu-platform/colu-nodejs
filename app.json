@@ -1,0 +1,13 @@
+{
+  "name": "colu",
+  "description": "Colu SDK for engine and colored-coins api",
+  "repository": "https://github.com/Colu-platform/colu-nodejs",
+  "logo": "http://coloredcoins.org/wordpress/wp-content/uploads/2015/07/icon-colu.png",
+  "keywords": [
+    "colu",
+    "engine",
+    "colored",
+    "coins",
+    "bitcoin"
+  ]
+}

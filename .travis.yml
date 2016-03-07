@@ -1,9 +1,12 @@
 env:
-  #"node" is the latest version
-  - TRAVIS_NODE_VERSION="node"
-  - TRAVIS_NODE_VERSION="iojs"
-  - TRAVIS_NODE_VERSION="0.10"
-  - TRAVIS_NODE_VERSION="0.12"
+  global:
+    - COLU_SDK_NETWORK=testnet COLU_SDK_COLU_HOST=https://testnet.engine.colu.co COLU_SDK_RPC_USE_SSL=false
+  matrix:
+    #"node" is the latest version
+    - TRAVIS_NODE_VERSION="node"
+    - TRAVIS_NODE_VERSION="iojs"
+    - TRAVIS_NODE_VERSION="0.10"
+    - TRAVIS_NODE_VERSION="0.12"
 os:
   - linux
   - osx

@@ -96,7 +96,7 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
   var dataParams = {
     cc_args: args
   }
-  var path = this.coluHost + '/build_finance_'+ type
+  var path = this.coluHost + '/build_finance_' + type
   if (this.apiKey) path += '?token=' + this.apiKey
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
@@ -108,7 +108,7 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
 Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
   var self = this
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
-  if (!addresses) return callback('can\'t find addresses to fund')
+  if (!addresses) return callback("can't find addresses to fund")
   async.map(addresses,
     function (address, cb) {
       self.hdwallet.getAddressPrivateKey(address, cb)
@@ -125,8 +125,8 @@ Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
   var dataParams = {
     last_txid: lastTxid,
     tx_hex: signedTxHex
-  },
-  path = this.coluHost + '/transmit_financed'
+  }
+  var path = this.coluHost + '/transmit_financed'
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) return callback(body)
@@ -195,7 +195,7 @@ Colu.prototype.issueAsset = function (args, callback) {
       cb(null, assetInfo)
     }
   ],
-  callback)
+    callback)
 }
 
 Colu.prototype.sendAsset = function (args, callback) {
@@ -225,7 +225,7 @@ Colu.prototype.sendAsset = function (args, callback) {
       cb(null, sendInfo)
     }
   ],
-  callback)
+    callback)
 }
 
 Colu.prototype.getAssets = function (callback) {
@@ -235,7 +235,7 @@ Colu.prototype.getAssets = function (callback) {
     var dataParams = {
       addresses: addresses
     }
-    request.post(self.coluHost + '/get_addresses_utxos', {json: dataParams }, function (err, response, body) {
+    request.post(self.coluHost + '/get_addresses_utxos', { json: dataParams }, function (err, response, body) {
       if (err) return callback(err)
       if (!response || response.statusCode !== 200) return callback(body)
       var utxos = body
@@ -279,8 +279,7 @@ Colu.prototype.getTransactions = function (addresses, callback) {
       if (err) return callback(err)
       self.getTransactionsFromAddresses(addresses, callback)
     })
-  }
-  else {
+  } else {
     self.getTransactionsFromAddresses(addresses, callback)
   }
 }
@@ -292,7 +291,7 @@ Colu.prototype.getTransactionsFromAddresses = function (addresses, callback) {
     addresses: addresses,
     with_transactions: true
   }
-  request.post(self.coluHost + '/get_addresses_info', {json: dataParams }, function (err, response, body) {
+  request.post(self.coluHost + '/get_addresses_info', { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) return callback(body)
     var addressesInfo = body
@@ -317,7 +316,7 @@ Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
   var self = this
 
   if (typeof full === 'undefined') {
-    full = true   //default value
+    full = true // default value
   }
   if (typeof full === 'function') {
     callback = full
@@ -347,19 +346,19 @@ Colu.prototype.getAssetMetadata = function (assetId, utxo, full, callback) {
       }
     }
   ],
-  function (err) {
-    if (err) return callback(err)
-    // return the metadata (if !full, just the partial)
-    var partial = getPartialMetadata(metadata)
-    if (!full) {
-      metadata = partial
-    } else {
-      for (var attr in partial) {
-        metadata[attr] = partial[attr]
+    function (err) {
+      if (err) return callback(err)
+      // return the metadata (if !full, just the partial)
+      var partial = getPartialMetadata(metadata)
+      if (!full) {
+        metadata = partial
+      } else {
+        for (var attr in partial) {
+          metadata[attr] = partial[attr]
+        }
       }
-    }
-    return callback(null, metadata)
-  })
+      return callback(null, metadata)
+    })
 }
 
 var getCachedAssetMetadata = function (ds, assetId, utxo, callback) {
@@ -412,8 +411,7 @@ Colu.prototype.onNewTransaction = function (callback) {
       }
     })
     self.events.join('newtransaction')
-  }
-  else {
+  } else {
     var addresses = []
     var transactions = []
     self.hdwallet.on('registerAddress', function (address) {
@@ -436,8 +434,7 @@ Colu.prototype.onNewCCTransaction = function (callback) {
       }
     })
     self.events.join('newcctransaction')
-  }
-  else {
+  } else {
     self.onNewTransaction(function (transaction) {
       if (transaction.colored) {
         callback(transaction)
@@ -448,7 +445,7 @@ Colu.prototype.onNewCCTransaction = function (callback) {
 
 var isLocalTransaction = function (addresses, transaction) {
   var localTx = false
-  
+
   if (!localTx && transaction.vin) {
     transaction.vin.forEach(function (input) {
       if (!localTx && input.previousOutput && input.previousOutput.addresses) {
@@ -465,7 +462,7 @@ var isLocalTransaction = function (addresses, transaction) {
     transaction.vout.forEach(function (output) {
       if (!localTx && output.scriptPubKey && output.scriptPubKey.addresses) {
         output.scriptPubKey.addresses.forEach(function (address) {
-          if (!localTx && ~ addresses.indexOf(address)) {
+          if (!localTx && ~addresses.indexOf(address)) {
             localTx = true
           }
         })
@@ -478,7 +475,7 @@ var isLocalTransaction = function (addresses, transaction) {
 
 var registerAddress = function (self, address, addresses, transactions, callback) {
   if (!~addresses.indexOf(address)) {
-    var channel = 'address/'+address
+    var channel = 'address/' + address
     self.events.on(channel, function (data) {
       var transaction = data.transaction
       if (!~transactions.indexOf(transaction.txid)) {
@@ -491,7 +488,7 @@ var registerAddress = function (self, address, addresses, transactions, callback
   }
 }
 
-Colu.prototype.getIssuedAssetsFromTransactions = function(addresses, transactions) {
+Colu.prototype.getIssuedAssetsFromTransactions = function (addresses, transactions) {
   var issuances = []
   transactions.forEach(function (transaction) {
     if (transaction.colored && transaction.ccdata && transaction.ccdata.length && transaction.ccdata[0].type === 'issuance') {
@@ -510,7 +507,7 @@ Colu.prototype.getIssuedAssetsFromTransactions = function(addresses, transaction
       var assetId
       var indexes = []
       transaction.ccdata[0].payments.forEach(function (payment) {
-        var coloredOutout = payment.output  
+        var coloredOutout = payment.output
         if (!transaction.vout || !transaction.vout.length || !transaction.vout[coloredOutout] || !transaction.vout[coloredOutout].assets || !transaction.vout[coloredOutout].assets.length || !transaction.vout[coloredOutout].assets[0].assetId) {
           return
         }
@@ -518,7 +515,8 @@ Colu.prototype.getIssuedAssetsFromTransactions = function(addresses, transaction
           assetId = transaction.vout[coloredOutout].assets[0].assetId
         } else {
           if (assetId !== transaction.vout[coloredOutout].assets[0].assetId) {
-            return err = true
+            err = true
+            return err
           }
         }
         indexes.push(coloredOutout)
