@@ -66,6 +66,9 @@ module.exports = {
     'params': ['params'],
     'callback': true
   },
+  'coloredCoins.signTx': {
+    'params': ['unsignedTx', 'privateKey']
+  },
 
   /* HD Wallet */
 
