@@ -9,7 +9,7 @@ var ColoredCoins = require('coloredcoinsd-wraper')
 var Events = require('./events.js')
 
 var mainnetColuHost = 'https://engine.colu.co'
-var testnetColuHost = 'https://testnet.engine.colu.co'
+var testnetColuHost = 'https://testnet-engine.colu.co'
 
 var sendingMethods = ['address', 'phone_number', 'phoneNumber', 'facebook', 'facebookId', 'email']
 
