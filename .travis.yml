@@ -1,6 +1,6 @@
 env:
   global:
-    - COLU_SDK_NETWORK=testnet COLU_SDK_COLU_HOST=https://testnet.engine.colu.co COLU_SDK_RPC_USE_SSL=false
+    - COLU_SDK_NETWORK=testnet COLU_SDK_COLU_HOST=https://testnet-engine.colu.co COLU_SDK_RPC_USE_SSL=false
   matrix:
     #"node" is the latest version
     - TRAVIS_NODE_VERSION="node"

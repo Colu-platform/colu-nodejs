@@ -9,7 +9,7 @@ var ColoredCoins = require('coloredcoinsd-wraper')
 var Events = require('./events.js')
 
 var mainnetColuHost = 'https://engine.colu.co'
-var testnetColuHost = 'https://testnet.engine.colu.co'
+var testnetColuHost = 'https://testnet-engine.colu.co'
 
 var sendingMethods = ['address', 'phone_number', 'phoneNumber', 'facebook', 'facebookId', 'email']
 
@@ -105,8 +105,20 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
   })
 }
 
-Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
+Colu.prototype.signAndTransmit = function (assetInfo, attempts, callback) {
   var self = this
+  if (typeof attempts == 'function') {
+    callback = attempts
+    attempts = 0
+  }
+  if (attempts >= 10) {
+    return callback('Cannot transmit the transaction')
+  }
+  if (attempts) {
+    console.log('trying to transmit for the ' + (attempts + 1) + ' attempts')
+  }
+  var txHex = assetInfo.txHex
+  var lastTxid = assetInfo.financeTxid
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
   if (!addresses) return callback("can't find addresses to fund")
   async.map(addresses,
@@ -116,7 +128,15 @@ Colu.prototype.signAndTransmit = function (txHex, lastTxid, callback) {
     function (err, privateKeys) {
       if (err) return callback(err)
       var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-      self.transmit(signedTxHex, lastTxid, callback)
+      self.transmit(signedTxHex, lastTxid, function (err, resp) {
+        if (err) {
+          if (!err.assetInfo) return callback(err)
+          // try fallback:
+          return self.signAndTransmit(err.assetInfo, attempts + 1, callback)
+        }
+        assetInfo.txid = resp.txid2.txid
+        callback(null, assetInfo)
+      })
     }
   )
 }
@@ -181,21 +201,18 @@ Colu.prototype.issueAsset = function (args, callback) {
       args.flags.injectPreviousOutput = true
       self.buildTransaction('issue', args, cb)
     },
-    function (info, cb) {
-      if (typeof info === 'function') return info('wrong server response')
-      if (!info || !info.txHex) return cb('wrong server response')
-      assetInfo = info
-      lastTxid = assetInfo.financeTxid
-      self.signAndTransmit(assetInfo.txHex, lastTxid, cb)
+    function (assetInfo, cb) {
+      if (typeof assetInfo === 'function') return assetInfo('wrong server response')
+      if (!assetInfo || !assetInfo.txHex) return cb('wrong server response')
+      self.signAndTransmit(assetInfo, cb)
     },
-    function (body, cb) {
-      assetInfo.txid = body.txid2.txid
+    function (assetInfo, cb) {
       assetInfo.receivingAddresses = receivingAddresses
       assetInfo.issueAddress = args.issueAddress
       cb(null, assetInfo)
     }
   ],
-    callback)
+  callback)
 }
 
 Colu.prototype.sendAsset = function (args, callback) {
@@ -214,18 +231,14 @@ Colu.prototype.sendAsset = function (args, callback) {
       args.flags.injectPreviousOutput = true
       self.buildTransaction('send', args, cb)
     },
-    function (info, cb) {
-      sendInfo = info
-      lastTxid = sendInfo.financeTxid
-
-      self.signAndTransmit(sendInfo.txHex, lastTxid, cb)
+    function (assetInfo, cb) {
+      self.signAndTransmit(assetInfo, cb)
     },
-    function (body, cb) {
-      sendInfo.txid = body.txid2.txid
-      cb(null, sendInfo)
+    function (assetInfo, cb) {
+      cb(null, assetInfo)
     }
   ],
-    callback)
+  callback)
 }
 
 Colu.prototype.getAssets = function (callback) {
