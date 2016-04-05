@@ -159,8 +159,6 @@ Colu.prototype.issueAsset = function (args, callback) {
 
   var privateKey
   var publicKey
-  var lastTxid
-  var assetInfo
   var receivingAddresses
   args.transfer = args.transfer || []
   var hdwallet = self.hdwallet
@@ -218,9 +216,6 @@ Colu.prototype.issueAsset = function (args, callback) {
 Colu.prototype.sendAsset = function (args, callback) {
   var self = this
 
-  var lastTxid
-  var sendInfo
-
   async.waterfall([
     // Build finance transaction.
     function (cb) {
@@ -267,6 +262,7 @@ Colu.prototype.getAssets = function (callback) {
                   issueTxid: asset.issueTxid,
                   divisibility: asset.divisibility,
                   lockStatus: asset.lockStatus,
+                  aggregationPolicy: asset.aggregationPolicy,
                   assetIndex: i
                 })
               })
@@ -513,6 +509,7 @@ Colu.prototype.getIssuedAssetsFromTransactions = function (addresses, transactio
         txid: transaction.txid,
         lockStatus: transaction.ccdata[0].lockStatus,
         divisibility: transaction.ccdata[0].divisibility,
+        aggregationPolicy: transaction.ccdata[0].aggregationPolicy,
         amount: transaction.ccdata[0].amount,
         amountOfUnits: transaction.ccdata[0].amountOfUnits
       }
