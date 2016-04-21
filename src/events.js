@@ -20,21 +20,21 @@ function Events (args) {
   self.coluHost = args.coluHost
   self.joinedChannels = []
   self.socket = io.connect(self.coluHost + '/events')
-  self.socket.on('connect', function () {
-    self.channels.forEach(function (channel) {
-      self.socket.on(channel, function (data) {
-        self.emit(channel, data)
-      })
+  self.socket.on('transaction', function (data) {
+    self.rooms.forEach(function (room) {
+      if (data[room.key]) {
+        self.emit(room.room + '/' + data[room.key], data)
+      }
+    })
+  })
+  self.channels.forEach(function (channel) {
+    self.socket.on(channel, function (data) {
+      self.emit(channel, data)
+    })
+    self.socket.on('connect', function () {
       if (~self.joinedChannels.indexOf(channel)) {
         self.socket.emit('join', channel)
       }
-    })
-    self.socket.on('transaction', function (data) {
-      self.rooms.forEach(function (room) {
-        if (data[room.key]) {
-          self.emit(room.room + '/' + data[room.key], data)
-        }
-      })
     })
   })
 }
