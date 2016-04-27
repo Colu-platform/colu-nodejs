@@ -80798,7 +80798,7 @@ var Events = require('./events.js')
 var mainnetColuHost = 'https://engine.colu.co'
 var testnetColuHost = 'https://testnet-engine.colu.co'
 
-var sendingMethods = ['address', 'phone_number', 'phoneNumber', 'facebook', 'facebookId', 'email']
+var sendingMethods = ['address', 'phone_number', 'phoneNumber', 'facebook', 'facebookId', 'email', 'user_id', 'userId']
 
 var Colu = function (settings) {
   var self = this
