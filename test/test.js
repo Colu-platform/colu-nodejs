@@ -1,4 +1,4 @@
-var Colu = require('../src/colu')
+var Colu = require('..')
 var testUtils = require('./test-utils')
 var expect = require('chai').expect
 
@@ -24,6 +24,7 @@ describe('Test Colu SDK', function () {
       var args = testUtils.createIssueAssetArgs();
       colu.issueAsset(args, function (err, ans) {
         if (err) return done(err)
+        // console.log('ans', ans)
         testUtils.verifyIsssueAssetResponse(ans)
         done()
       })
@@ -32,13 +33,15 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should return assets list for this wallet.', function (done) {
-    this.timeout(10000)
-    colu.getAssets(function (err, assets) {
-      if (err) return done(err)
-      expect(assets).to.be.a('array')
-      expect(assets).to.have.length.above(0)
-      done()
-    })
+    this.timeout(20000)
+    // setTimeout(function () {
+      colu.getAssets(function (err, assets) {
+        if (err) return done(err)
+        expect(assets).to.be.a('array')
+        expect(assets).to.have.length.above(0)
+        done()
+      })
+    // }, 10000)
   })
 
   it('Should create and broadcast send tx from utxo.', function (done) {

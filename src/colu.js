@@ -243,6 +243,7 @@ Colu.prototype.getAssets = function (callback) {
     var dataParams = {
       addresses: addresses
     }
+    // console.log('get_addresses_utxos:', JSON.stringify(dataParams))
     request.post(self.coluHost + '/get_addresses_utxos', { json: dataParams }, function (err, response, body) {
       if (err) return callback(err)
       if (!response || response.statusCode !== 200) return callback(body)
