@@ -38,7 +38,7 @@ settings.server = settings.server || {}
 
 settings.server.httpPort = settings.server.httpPort || process.env.COLU_SDK_RPC_SERVER_HTTP_PORT || process.env.PORT || 80 // Optional
 settings.server.httpsPort = settings.server.httpsPort || process.env.COLU_SDK_RPC_SERVER_HTTPS_PORT || 443 // Optional
-settings.server.host = settings.server.host || process.env.COLU_SDK_RPC_SERVER_HOST || '127.0.0.1' // Optional
+settings.server.host = settings.server.host || process.env.COLU_SDK_RPC_SERVER_HOST || '0.0.0.0' // Optional
 
 settings.server.usessl = settings.server.usessl || (process.env.COLU_SDK_RPC_USE_SSL === 'true') // Optional
 settings.server.useBoth = settings.server.useBoth || (process.env.COLU_SDK_RPC_USE_BOTH === 'true') // both HTTP and HTTPS - Optional
