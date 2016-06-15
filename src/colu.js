@@ -19,13 +19,15 @@ var Colu = function (settings) {
   settings = settings || {}
   if (settings.network === 'testnet') {
     settings.coluHost = self.coluHost = settings.coluHost || testnetColuHost
+    self.network_name = 'testnet'
   } else {
     settings.coluHost = self.coluHost = settings.coluHost || mainnetColuHost
+    self.network_name = 'mainnet'
   }
   self.apiKey = settings.apiKey
-  if (self.coluHost === mainnetColuHost) {
-    if (!settings.apiKey) throw new Error('Must have apiKey and/or set network to testnet')
-  }
+  // if (self.coluHost === mainnetColuHost) {
+  //   if (!settings.apiKey) throw new Error('Must have apiKey and/or set network to testnet')
+  // }
   self.redisPort = settings.redisPort || 6379
   self.redisHost = settings.redisHost || '127.0.0.1'
   self.redisUrl = settings.redisUrl
@@ -97,7 +99,13 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
     cc_args: args
   }
   var path = this.coluHost + '/build_finance_' + type
-  if (this.apiKey) path += '?token=' + this.apiKey
+  var apiKey = args.token || this.apiKey
+  if (this.network_name === 'mainnet' && !apiKey) {
+    return cb('Must have apiKey/Token and/or set network to testnet.')
+  }
+  if (apiKey) {
+    dataParams.token = apiKey
+  }
   request.post(path, {json: dataParams}, function (err, response, body) {
     if (err) return cb(err)
     if (!response || response.statusCode !== 200) return cb(body)
