@@ -83397,6 +83397,9 @@ var HDWallet = function (settings) {
     self.privateSeed = new Buffer(self.privateSeed, 'hex')
     self.needToDiscover = true
   }
+  self.max_empty_accounts = settings.max_empty_accounts || MAX_EMPTY_ACCOUNTS
+  self.max_empty_addresses = settings.max_empty_addresses || MAX_EMPTY_ADDRESSES
+  self.known_fringe = settings.known_fringe || []
   self.master = bitcoin.HDNode.fromSeedHex(self.privateSeed, self.network)
   self.nextAccount = 0
   self.addresses = []
@@ -83638,6 +83641,21 @@ HDWallet.prototype.getAddressPath = function (address, callback) {
   this.getDB(addressKey, callback)
 }
 
+HDWallet.prototype.rediscover = function(max_empty_accounts, max_empty_addresses, callback) {
+  if (typeof max_empty_accounts == 'function') {
+    callback = max_empty_accounts
+    max_empty_accounts = this.max_empty_accounts
+    max_empty_addresses = this.max_empty_addresses
+  }
+  if (typeof max_empty_addresses == 'function') {
+    callback = max_empty_addresses
+    max_empty_addresses = this.max_empty_addresses
+  }
+  this.max_empty_accounts = max_empty_accounts || this.max_empty_accounts
+  this.max_empty_addresses = max_empty_addresses || this.max_empty_addresses
+  this.discover(callback)
+}
+
 HDWallet.prototype.discover = function (callback) {
   callback = callback || function () {}
   var self = this
@@ -83689,10 +83707,14 @@ HDWallet.prototype.calcCurrentFringe = function (callback) {
     if (err) return callback(err)
     fringe = fringe || '[]'
     fringe = JSON.parse(fringe)
-    fringe = fringe.map(function (nextUnused) {
+    var longest_fringe = fringe.length > self.known_fringe.length ? fringe : self.known_fringe
+    longest_fringe = longest_fringe.map(function (data, i) {
+      var nextUnused = Math.max(fringe[i] || 0, self.known_fringe[i] || 0)
+      // console.log('nextUnused', nextUnused)
       return {nextUnused: nextUnused, nextUnknown: nextUnused}
     })
-    return callback(null, fringe)
+    // console.log('longest_fringe', longest_fringe)
+    return callback(null, longest_fringe)
   })
 }
 
@@ -83718,7 +83740,7 @@ HDWallet.prototype.getFringeAddresses = function (fringe) {
     } else {
       numOfEmptyAccounts++
     }
-    for (var i = account.nextUnknown; i < account.nextUnused + MAX_EMPTY_ADDRESSES; i++) {
+    for (var i = account.nextUnknown; i < account.nextUnused + self.max_empty_addresses; i++) {
       var address = self.getAddress(currentAccount, i)
       fringeAddresses[address] = {
         account: currentAccount,
@@ -83727,9 +83749,9 @@ HDWallet.prototype.getFringeAddresses = function (fringe) {
     }
     currentAccount++
   })
-  for (var j = 0; j < MAX_EMPTY_ACCOUNTS - numOfEmptyAccounts; j++) {
+  for (var j = 0; j < self.max_empty_accounts - numOfEmptyAccounts; j++) {
     fringe.push({nextUnused: 0, nextUnknown: 0})
-    for (var i = 0; i < MAX_EMPTY_ADDRESSES; i++) {
+    for (var i = 0; i < self.max_empty_addresses; i++) {
       var address = self.getAddress(currentAccount, i)
       fringeAddresses[address] = {
         account: currentAccount,
@@ -83756,7 +83778,7 @@ HDWallet.prototype.calcNextFringe = function (fringe, fringeAddresses, discovere
   var allScaned = true
   var numOfEmptyAccounts = 0
   fringe.forEach(function (account, i) {
-    if (account.nextUnknown - account.nextUnused < MAX_EMPTY_ADDRESSES) allScaned = false
+    if (account.nextUnknown - account.nextUnused < self.max_empty_addresses) allScaned = false
     if (account.nextUnused == 0) {
       numOfEmptyAccounts++
     } else {
@@ -83764,7 +83786,7 @@ HDWallet.prototype.calcNextFringe = function (fringe, fringeAddresses, discovere
       self.nextAccount = Math.max(i + 1, self.nextAccount)
     }
   })
-  return allScaned && numOfEmptyAccounts >= MAX_EMPTY_ACCOUNTS
+  return allScaned && numOfEmptyAccounts >= self.max_empty_accounts
 }
 
 HDWallet.prototype.getPrivateSeed = function () {
