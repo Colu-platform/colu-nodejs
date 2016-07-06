@@ -7,7 +7,7 @@
     "start": "node bin/run.js",
     "test": "istanbul cover _mocha -- -R spec",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
-    "browserify": "browserify ./src/colu.js -o ./client/colu.client.js --im -s Colu",
+    "browserify": "gulp browserify",
     "uglify": "uglifyjs -c -o ./client/colu.client.min.js -- ./client/colu.client.js",
     "client_commit": "git commit --quiet ./client -m \"browserify and uglify\" || echo \"No changes to commit\"",
     "preversion": "npm run browserify && npm run uglify && npm run client_commit"
@@ -74,6 +74,10 @@
     "istanbul": "^0.3.22",
     "mocha": "^2.2.4",
     "uglify": "^0.1.5",
-    "portfinder": "^0.4.0"
+    "portfinder": "^0.4.0",
+    "gulp": "^3.9.1",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "gulp-uglify": "^1.5.4"
   }
 }
