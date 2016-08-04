@@ -35,6 +35,7 @@ var Colu = function (settings) {
   self.coloredCoins = new ColoredCoins(settings)
   self.network = self.hdwallet.network
   self.eventsSecure = settings.eventsSecure || false
+  self.allTransactions = settings.allTransactions || false
   if (settings.events) {
     self.events = new Events(settings)
     self.listenersAddtesses = {}
@@ -422,6 +423,12 @@ Colu.prototype.onNewTransaction = function (callback) {
   var self = this
 
   if (!self.events) return false
+  if (self.allTransactions) {
+    return self.events.on('newtransaction', function (data) {
+      callback(data.newtransaction)
+    })
+    self.events.join('newtransaction')
+  }
   if (self.eventsSecure) {
     self.events.on('newtransaction', function (data) {
       self.hdwallet.discover()
@@ -446,6 +453,12 @@ Colu.prototype.onNewCCTransaction = function (callback) {
   var self = this
 
   if (!self.events) return false
+  if (self.allTransactions) {
+  return self.events.on('newtransaction', function (data) {
+      callback(data.newcctransaction)
+    })
+  }
+  self.events.join('newtransaction')
   if (self.eventsSecure) {
     self.events.on('newcctransaction', function (data) {
       self.hdwallet.discover()
