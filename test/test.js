@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 var Colu = require('..')
 var testUtils = require('./test-utils')
 var expect = require('chai').expect
@@ -5,31 +6,52 @@ var expect = require('chai').expect
 describe('Test Colu SDK', function () {
 
   var settings
-  try {
-    settings = require('./settings')
-  }
-  catch (e) {
-    settings = {
-      network: 'testnet',
-      events: true,
-      eventsSecure: true,
-    }
-  }
   var colu
+
+  before(function (done) {
+    try {
+      settings = require('./settings')
+    } catch (e) {
+      settings = {
+        network: 'testnet',
+        events: true,
+        eventsSecure: true
+      }
+    }
+    colu = new Colu(settings)
+    colu.on('connect', done)
+    colu.init()
+  })
+
+  it('Should get an empty list of assets', function (done) {
+    this.timeout(5000)
+    colu.getAssets(function (err, assets) {
+      if (err) return done(err)
+      expect(assets).to.be.a('array')
+      expect(assets).to.have.lengthOf(0)
+      done()
+    })
+  })
+
+  it('Should get an empty list of transactions', function (done) {
+    this.timeout(5000)
+    colu.getTransactions(function (err, transactions) {
+      if (err) return done(err)
+      expect(transactions).to.be.a('array')
+      expect(transactions).to.have.lengthOf(0)
+      done()
+    })
+  })
 
   it('Should create and broadcast issue tx.', function (done) {
     this.timeout(100000)
-    colu = new Colu(settings)
-    colu.on('connect', function () {
-      var args = testUtils.createIssueAssetArgs();
-      colu.issueAsset(args, function (err, ans) {
-        if (err) return done(err)
-        // console.log('ans', ans)
-        testUtils.verifyIsssueAssetResponse(ans)
-        done()
-      })
+    var args = testUtils.createIssueAssetArgs();
+    colu.issueAsset(args, function (err, ans) {
+      if (err) return done(err)
+      // console.log('ans', ans)
+      testUtils.verifyIsssueAssetResponse(ans)
+      done()
     })
-    colu.init()
   })
 
   it('Should return assets list for this wallet.', function (done) {

@@ -14,7 +14,8 @@ describe('JSON-RPC API tests', function() {
 	var oldEnv
 	var server 
 
-	before(function() {
+	before(function (done) {
+		this.timeout(5000)
 		portfinder.getPort(function (err, port) {
 			assert.ifError(err)
 			oldEnv = {
@@ -23,6 +24,11 @@ describe('JSON-RPC API tests', function() {
 			process.env.COLU_SDK_RPC_SERVER_HTTP_PORT = port
 			url = url + ':' + port
 			server = require('../bin/run')
+			server.on('connect', function (type) {
+				if (type === 'http') {
+					done()
+				}
+			})
 		})
 	})
 

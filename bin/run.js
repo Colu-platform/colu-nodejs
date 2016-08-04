@@ -85,8 +85,8 @@ if (settings.server.useBasicAuth && settings.server.userName && settings.server.
 app.use(jsonrpc())
 
 app.options('/', function (req, res, next) {
-    res.status(200).end();
-});
+  res.status(200).end()
+})
 
 app.post('/', function (req, res, next) {
   if (!req.body) return
@@ -208,6 +208,7 @@ var launchServer = function (type, sslCredentials) {
   var port = (type === 'https') ? settings.server.httpsPort : settings.server.httpPort
   server.listen(port, settings.server.host, function () {
     console.log(type + ' server started on port', port)
+    app.emit('connect', type)
   })
   server.on('error', function (err) {
     console.error('err = ', err)
