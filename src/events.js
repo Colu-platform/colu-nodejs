@@ -32,9 +32,19 @@ function Events (args) {
       self.emit(channel, data)
     })
     self.socket.on('connect', function () {
+      console.log('socket', self.socket.id, 'connected')
       if (~self.joinedChannels.indexOf(channel)) {
         self.socket.emit('join', channel)
       }
+    })
+    self.socket.on('disconnect', function () {
+      console.log('socket', self.socket.id, 'disconnect')
+    })
+    self.socket.on('connect_error', function (err) {
+      console.log('socket', self.socket.id, 'connect_error', err)
+    })
+    self.socket.on('reconnect_error', function (err) {
+      console.log('socket', self.socket.id, 'reconnect_error', err)
     })
   })
 }
