@@ -19,6 +19,7 @@ function Events (args) {
   args = args || {}
   self.coluHost = args.coluHost
   self.joinedChannels = []
+  console.log('connectong to', self.coluHost + '/events')
   self.socket = io.connect(self.coluHost + '/events')
   self.socket.on('transaction', function (data) {
     self.rooms.forEach(function (room) {
