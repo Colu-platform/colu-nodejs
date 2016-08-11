@@ -424,15 +424,17 @@ Colu.prototype.onNewTransaction = function (callback) {
 
   if (!self.events) return false
   if (self.allTransactions) {
-    return self.events.on('newtransaction', function (data) {
+    self.events.on('newtransaction', function (data) {
+      self.hdwallet.discover()
       callback(data.newtransaction)
     })
-    self.events.join('newtransaction')
+    return self.events.join('newtransaction')
   }
   if (self.eventsSecure) {
     self.events.on('newtransaction', function (data) {
       self.hdwallet.discover()
       if (isLocalTransaction(self.addresses, data.newtransaction)) {
+        self.hdwallet.discover()
         callback(data.newtransaction)
       }
     })
@@ -454,15 +456,17 @@ Colu.prototype.onNewCCTransaction = function (callback) {
 
   if (!self.events) return false
   if (self.allTransactions) {
-  return self.events.on('newtransaction', function (data) {
+    self.events.on('newcctransaction', function (data) {
+      self.hdwallet.discover()
       callback(data.newcctransaction)
     })
+    return self.events.join('newcctransaction')
   }
-  self.events.join('newtransaction')
   if (self.eventsSecure) {
     self.events.on('newcctransaction', function (data) {
       self.hdwallet.discover()
       if (isLocalTransaction(self.addresses, data.newcctransaction)) {
+        self.hdwallet.discover()
         callback(data.newcctransaction)
       }
     })
