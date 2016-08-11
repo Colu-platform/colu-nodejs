@@ -18,8 +18,8 @@ gulp.task('browserify', function() {
         }
     })
     .bundle()
-    .pipe(source('colu.client.min.js'))
+    .pipe(source('colu.client.js'))
     .pipe(buffer())
-    .pipe(uglify({ mangle: false }))
+    // .pipe(uglify({ mangle: false }))
     .pipe(gulp.dest('client'));
 });
