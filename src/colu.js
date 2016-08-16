@@ -419,6 +419,35 @@ var getPartialMetadata = function (metadata) {
   return ans
 }
 
+Colu.prototype.on = function (eventKey, callback) {
+  switch (eventKey) {
+    case 'newTransaction':
+      return this.onNewTransaction(callback)
+    case 'newCCTransaction':
+      return this.onNewCCTransaction(callback)
+    case 'revertedTransaction':
+      return this.onRevertedTransaction(callback)
+    case 'revertedCCTransaction':
+      return this.onRevertedCCTransaction(callback)
+    default:
+      return Events.prototype.on.call(this, eventKey, callback)
+  }
+}
+
+Colu.prototype.onRevertedTransaction = function (callback) {
+  this.events.on('revertedtransaction', function (data) {
+    callback(data.revertedtransaction)
+  })
+  this.events.join('revertedtransaction')
+}
+
+Colu.prototype.onRevertedCCTransaction = function (callback) {
+  this.events.on('revertedcctransaction', function (data) {
+    callback(data.revertedcctransaction)
+  })
+  this.events.join('revertedcctransaction')
+}
+
 Colu.prototype.onNewTransaction = function (callback) {
   var self = this
 
