@@ -149,11 +149,6 @@ describe('Test Colu SDK', function () {
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
-      setTimeout(function () {
-        if (!oneTimeDone++) {
-          done('timeout of 3000ms exceeded.')
-        }
-      }, 3000)
     })
   })
 
@@ -172,11 +167,6 @@ describe('Test Colu SDK', function () {
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
-      setTimeout(function () {
-        if (!oneTimeDone++) {
-          done('timeout of 3000ms exceeded.')
-        }
-      }, 3000)
     })
   })
 
@@ -195,11 +185,6 @@ describe('Test Colu SDK', function () {
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
-      setTimeout(function () {
-        if (!oneTimeDone++) {
-          done('timeout of 3000ms exceeded.')
-        }
-      }, 3000)
     })
   })
 
@@ -218,11 +203,6 @@ describe('Test Colu SDK', function () {
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
-      setTimeout(function () {
-        if (!oneTimeDone++) {
-          done('timeout of 3000ms exceeded.')
-        }
-      }, 3000)
     })
   })
 
