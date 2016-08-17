@@ -140,24 +140,14 @@ describe('Test Colu SDK', function () {
 
     var txid
     var oneTimeDone = 0
-    colu.onNewTransaction(function (transaction) {
+    colu.on('newTransaction', function (transaction) {
       if (txid === transaction.txid && !oneTimeDone++) {
         done()
       }
     })
-
-    var args = {
-      amount: 2,
-      divisibility: 0,
-      reissueable: false,
-      transfer: [
-        {
-          amount: 1
-        }
-      ]
-    }
+    var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       txid = ans.txid
       setTimeout(function () {
         if (!oneTimeDone++) {
@@ -173,24 +163,14 @@ describe('Test Colu SDK', function () {
     var txid
     var oneTimeDone = 0
 
-    colu.onNewTransaction(function (transaction) {
+    colu.on('newTransaction', function (transaction) {
       if (txid === transaction.txid && !oneTimeDone++) {
         done()
       }
     })
-
-    var args = {
-      amount: 2,
-      divisibility: 0,
-      reissueable: false,
-      transfer: [
-        {
-          amount: 1
-        }
-      ]
-    }
+    var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       txid = ans.txid
       setTimeout(function () {
         if (!oneTimeDone++) {
@@ -206,24 +186,14 @@ describe('Test Colu SDK', function () {
     colu.eventsSecure = true
     var txid
     var oneTimeDone = 0
-    colu.onNewCCTransaction(function (transaction) {
+    colu.on('newCCTransaction', function (transaction) {
       if (txid === transaction.txid && !oneTimeDone++) {
         done()
       }
     })
-
-    var args = {
-      amount: 2,
-      divisibility: 0,
-      reissueable: false,
-      transfer: [
-        {
-          amount: 1
-        }
-      ]
-    }
+    var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       txid = ans.txid
       setTimeout(function () {
         if (!oneTimeDone++) {
@@ -239,24 +209,14 @@ describe('Test Colu SDK', function () {
     var txid
     var oneTimeDone = 0
 
-    colu.onNewCCTransaction(function (transaction) {
+    colu.on('newCCTransaction', function (transaction) {
       if (txid === transaction.txid && !oneTimeDone++) {
         done()
       }
     })
-
-    var args = {
-      amount: 2,
-      divisibility: 0,
-      reissueable: false,
-      transfer: [
-        {
-          amount: 1
-        }
-      ]
-    }
+    var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
-      assert.ifError(err)
+      if (err) return done(err)
       txid = ans.txid
       setTimeout(function () {
         if (!oneTimeDone++) {
