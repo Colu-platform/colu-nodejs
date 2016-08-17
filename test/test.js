@@ -137,36 +137,39 @@ describe('Test Colu SDK', function () {
 
   it ('Should return new transaction secure.', function (done) {
     this.timeout(100000)
+    colu.eventsSecure = true
 
+    var txids = []
     var txid
-    var oneTimeDone = 0
+    var once = 0
     colu.on('newTransaction', function (transaction) {
-      if (txid === transaction.txid && !oneTimeDone++) {
-        done()
-      }
+      txids.push(transaction.txid)
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
     var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
   })
 
   it ('Should return new transaction unsecure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = false
-    var txid
-    var oneTimeDone = 0
 
+    var txids = []
+    var txid
+    var once = 0
     colu.on('newTransaction', function (transaction) {
-      if (txid === transaction.txid && !oneTimeDone++) {
-        done()
-      }
+      txids.push(transaction.txid)
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
     var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
   })
 
@@ -174,35 +177,37 @@ describe('Test Colu SDK', function () {
     this.timeout(100000)
 
     colu.eventsSecure = true
+    var txids = []
     var txid
-    var oneTimeDone = 0
+    var once = 0
     colu.on('newCCTransaction', function (transaction) {
-      if (txid === transaction.txid && !oneTimeDone++) {
-        done()
-      }
+      txids.push(transaction.txid)
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
     var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
   })
 
   it ('Should return new cc transaction unsecure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = false
+    
+    var txids = []
     var txid
-    var oneTimeDone = 0
-
+    var once = 0
     colu.on('newCCTransaction', function (transaction) {
-      if (txid === transaction.txid && !oneTimeDone++) {
-        done()
-      }
+      txids.push(transaction.txid)
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
     var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       txid = ans.txid
+      if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
   })
 
