@@ -7,6 +7,10 @@ module.exports = {
     'params': ['params'],
     'callback': true
   },
+  'burnAsset': {
+    'params': ['params'],
+    'callback': true
+  },
   'getAssets': {
     'callback': true
   },

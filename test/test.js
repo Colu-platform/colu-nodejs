@@ -2,11 +2,14 @@
 var Colu = require('..')
 var testUtils = require('./test-utils')
 var expect = require('chai').expect
+var async = require('async')
+var _ = require('lodash')
 
 describe('Test Colu SDK', function () {
 
   var settings
   var colu
+  var assetId
 
   before(function (done) {
     try {
@@ -48,22 +51,71 @@ describe('Test Colu SDK', function () {
     var args = testUtils.createIssueAssetArgs();
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
-      // console.log('ans', ans)
-      testUtils.verifyIsssueAssetResponse(ans)
+      assetId = ans.assetId
+      testUtils.verifyIssueAssetResponse(ans)
       done()
     })
   })
 
   it('Should return assets list for this wallet.', function (done) {
     this.timeout(20000)
-    // setTimeout(function () {
-      colu.getAssets(function (err, assets) {
-        if (err) return done(err)
-        expect(assets).to.be.a('array')
-        expect(assets).to.have.length.above(0)
-        done()
-      })
-    // }, 10000)
+    colu.getAssets(function (err, assets) {
+      if (err) return done(err)
+      expect(assets).to.be.a('array')
+      expect(assets).to.have.length.above(0)
+      done()
+    })
+  })
+
+  it('Should burn amount of assets from utxo.', function (done) {
+    this.timeout(100000)
+    var args = testUtils.createBurnAssetFromUtxoArgs()
+    var assetDataArgs = {assetId: assetId}
+    var assetTotalAmount
+    async.waterfall([
+      function (cb) {
+        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+      },
+      function (data, cb) {
+        assetTotalAmount = data.assetTotalAmount
+        colu.burnAsset(args, cb)
+      },
+      function (data, cb) {
+        testUtils.verifyBurnAssetResponse(data)
+        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+      }
+    ],
+    function (err, data) {
+      if (err) return done(err)
+      expect(data.assetTotalAmount).to.equal(assetTotalAmount - _.sumBy(args.burn, 'amount'))
+      done()      
+    })
+  })
+
+  it('Should burn amount of assets from address.', function (done) {
+    this.timeout(100000)
+    var args = testUtils.createBurnAssetFromAddressArgs()
+    var assetDataArgs = {assetId: assetId}
+    var assetTotalAmount
+    async.waterfall([
+      function (cb) {
+        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+      },
+      function (data, cb) {
+        assetWalletAmount = data.assetAmount
+        assetTotalAmount = data.assetTotalAmount
+        colu.burnAsset(args, cb)
+      },
+      function (data, cb) {
+        testUtils.verifyBurnAssetResponse(data)
+        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+      }
+    ],
+    function (err, data) {
+      if (err) return done(err)
+      expect(data.assetTotalAmount).to.equal(assetTotalAmount - _.sumBy(args.burn, 'amount'))
+      done()      
+    })
   })
 
   it('Should create and broadcast send tx from utxo.', function (done) {
