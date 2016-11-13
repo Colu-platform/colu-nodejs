@@ -13,12 +13,12 @@ var utxo
 
 var createIssueAssetArgs = function() {
   return {
-    amount: 3,
+    amount: 30,
     divisibility: 0,
     reissueable: false,
     transfer: [
       {
-        amount: 1
+        amount: 20
       }
     ],
     metadata: {
@@ -34,7 +34,7 @@ var createIssueAssetArgs = function() {
   }
 }
 
-var verifyIsssueAssetResponse = function(ans) {
+var verifyIssueAssetResponse = function(ans) {
 	expect(ans.txHex).to.be.a('string')
 	expect(ans.txHex).to.have.length.above(0)
 	expect(ans.assetId).to.be.a('string')
@@ -53,6 +53,55 @@ var verifyIsssueAssetResponse = function(ans) {
 	fromAddress = ans.receivingAddresses[0].address
 }
 
+var createBurnAssetFromUtxoArgs = function () {
+  return {
+    sendutxo: [utxo],
+    transfer: [
+      {
+        assetId: assetId,
+        address: toAddress,
+        amount: 10
+      }
+    ],
+    burn: [
+      {
+        assetId: assetId,
+        amount: 1
+      }
+    ]
+  }
+}
+
+var createBurnAssetFromAddressArgs = function () {
+  return {
+    from: [fromAddress],
+    transfer: [
+      {
+        assetId: assetId,
+        address: fromAddress,
+        amount: 5
+      }
+    ],
+    burn: [
+      {
+        assetId: assetId,
+        amount: 1
+      }
+    ]
+  }
+}
+
+var verifyBurnAssetResponse = function (ans) {
+  expect(ans).to.be.a('object')
+  expect(ans.txHex).to.be.a('string')
+  expect(ans.txHex).to.have.length.above(0)
+  expect(ans.txid).to.be.a('string')
+  expect(ans.txid).to.have.length.above(0)
+  expect(ans.coloredOutputIndexes).to.be.a('array')
+  expect(ans.coloredOutputIndexes).to.have.length.above(0)
+  utxo = ans.txid + ':' + ans.coloredOutputIndexes[0]
+}
+
 var createSendAssetFromUtxoArgs = function() {
   var address = fromAddress
   return {
@@ -61,7 +110,7 @@ var createSendAssetFromUtxoArgs = function() {
       {
         address: toAddress,
         assetId: assetId,
-        amount: 1
+        amount: 3
       }
     ]
   }
@@ -83,7 +132,7 @@ var createSendAssetFromAddressArgs = function() {
         {
           address: toAddress,
           assetId: assetId,
-          amount: 1
+          amount: 2
         }
       ]
     }
@@ -126,7 +175,10 @@ var verifyGetAssetMetadataResponse = function(metadata) {
 
 module.exports = {
   createIssueAssetArgs : createIssueAssetArgs,
-  verifyIsssueAssetResponse : verifyIsssueAssetResponse,
+  verifyIssueAssetResponse : verifyIssueAssetResponse,
+  createBurnAssetFromUtxoArgs: createBurnAssetFromUtxoArgs,
+  createBurnAssetFromAddressArgs: createBurnAssetFromAddressArgs,
+  verifyBurnAssetResponse: verifyBurnAssetResponse,
   createSendAssetFromUtxoArgs : createSendAssetFromUtxoArgs,
   verifySendAssetResponse : verifySendAssetResponse,
   createSendAssetFromAddressArgs : createSendAssetFromAddressArgs,

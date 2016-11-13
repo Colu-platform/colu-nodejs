@@ -245,6 +245,41 @@ Colu.prototype.sendAsset = function (args, callback) {
   callback)
 }
 
+Colu.prototype.burnAsset = function (args, callback) {
+  var self = this
+  args.transfer = args.transfer || []
+
+  async.waterfall([
+    // Build finance transaction.
+    function (cb) {
+      if ((!args.from || !Array.isArray(args.from) || !args.from.length) && (!args.sendutxo || !Array.isArray(args.sendutxo) || !args.sendutxo.length)) {
+        return cb('Should have from as array of addresses or sendutxo as array of utxos.')
+      }
+      args.transfer.forEach(function (to) {
+        var sendingMethod = null
+        Object.keys(to).forEach(function (key) {
+          if (~sendingMethods.indexOf(key)) {
+            sendingMethod = key
+          }
+        })
+        if (!sendingMethod) {
+          return cb('Received invalid transfer element: can\'t find who to send to')
+        }
+      })
+      args.flags = args.flags || {}
+      args.flags.injectPreviousOutput = true
+      self.buildTransaction('burn', args, cb)
+    },
+    function (assetInfo, cb) {
+      self.signAndTransmit(assetInfo, cb)
+    },
+    function (ans, cb) {
+      cb(null, ans)
+    }
+  ],
+  callback)
+}
+
 Colu.prototype.getAssets = function (callback) {
   var self = this
   self.hdwallet.getAddresses(function (err, addresses) {
