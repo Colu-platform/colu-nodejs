@@ -4,8 +4,8 @@ env:
   matrix:
     #"node" is the latest version
     - TRAVIS_NODE_VERSION="node"
+    - TRAVIS_NODE_VERSION="4.4.6"
     - TRAVIS_NODE_VERSION="iojs"
-    - TRAVIS_NODE_VERSION="0.10"
     - TRAVIS_NODE_VERSION="0.12"
 os:
   - linux
