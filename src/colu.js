@@ -114,20 +114,25 @@ Colu.prototype.buildTransaction = function (type, args, cb) {
   })
 }
 
-Colu.prototype.signAndTransmit = function (assetInfo, attempts, callback) {
+Colu.prototype.signAndTransmit = function (assetInfo, callback) {
   var self = this
-  if (typeof attempts == 'function') {
-    callback = attempts
-    attempts = 0
-  }
-  if (attempts >= 10) {
-    return callback('Cannot transmit the transaction')
-  }
-  if (attempts) {
-    console.log('trying to transmit for the ' + (attempts + 1) + ' attempts')
-  }
-  var txHex = assetInfo.txHex
-  var lastTxid = assetInfo.financeTxid
+  async.waterfall([
+    function (cb) {
+      self.sign(assetInfo.txHex, cb)
+    },
+    function (signedTxHex, cb) {
+      self.transmit(signedTxHex, assetInfo.financeTxid, cb)
+    }
+  ],
+  function (err, resp) {
+    if (err) return callback(err)
+    assetInfo.txid = resp.txid2.txid
+    callback(null, assetInfo)
+  })
+}
+
+Colu.prototype.sign = function (txHex, callback) {
+  var self = this
   var addresses = ColoredCoins.getInputAddresses(txHex, self.network)
   if (!addresses) return callback("can't find addresses to fund")
   async.map(addresses,
@@ -137,20 +142,23 @@ Colu.prototype.signAndTransmit = function (assetInfo, attempts, callback) {
     function (err, privateKeys) {
       if (err) return callback(err)
       var signedTxHex = ColoredCoins.signTx(txHex, privateKeys)
-      self.transmit(signedTxHex, lastTxid, function (err, resp) {
-        if (err) {
-          if (!err.assetInfo) return callback(err)
-          // try fallback:
-          return self.signAndTransmit(err.assetInfo, attempts + 1, callback)
-        }
-        assetInfo.txid = resp.txid2.txid
-        callback(null, assetInfo)
-      })
+      callback(null, signedTxHex)
     }
   )
 }
 
-Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
+Colu.prototype.transmit = function (signedTxHex, lastTxid, attempts, callback) {
+  var self = this
+  if (typeof attempts === 'function') {
+    callback = attempts
+    attempts = 0
+  }
+  if (attempts >= 10) {
+    return callback('Cannot transmit the transaction')
+  }
+  if (attempts) {
+    console.log('trying to transmit for the ' + (attempts + 1) + ' attempts')
+  }
   var dataParams = {
     last_txid: lastTxid,
     tx_hex: signedTxHex
@@ -158,7 +166,12 @@ Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
   var path = this.coluHost + '/transmit_financed'
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
-    if (!response || response.statusCode !== 200) return callback(body)
+    if (!response || response.statusCode !== 200) {
+      var assetInfo = body.assetInfo
+      if (assetInfo) {
+        return self.transmit(assetInfo.txHex, assetInfo.financeTxid, attempts + 1, callback)
+      }
+    }
     callback(null, body)
   })
 }
@@ -169,6 +182,8 @@ Colu.prototype.issueAsset = function (args, callback) {
   var privateKey
   var publicKey
   var receivingAddresses
+  var financeTxid
+  var transmit = args.transmit !== false
   args.transfer = args.transfer || []
   var hdwallet = self.hdwallet
 
@@ -211,12 +226,19 @@ Colu.prototype.issueAsset = function (args, callback) {
     function (assetInfo, cb) {
       if (typeof assetInfo === 'function') return assetInfo('wrong server response')
       if (!assetInfo || !assetInfo.txHex) return cb('wrong server response')
+      financeTxid = assetInfo.financeTxid
+      if (!transmit) {
+        return self.sign(assetInfo.txHex, cb)
+      }
       self.signAndTransmit(assetInfo, cb)
     },
-    function (assetInfo, cb) {
-      assetInfo.receivingAddresses = receivingAddresses
-      assetInfo.issueAddress = args.issueAddress
-      cb(null, assetInfo)
+    function (res, cb) {
+      if (!transmit) {
+        return cb(null, {financeTxid: financeTxid, signedTxHex: res})
+      }
+      res.receivingAddresses = receivingAddresses
+      res.issueAddress = args.issueAddress
+      cb(null, res)
     }
   ],
   callback)
@@ -224,7 +246,8 @@ Colu.prototype.issueAsset = function (args, callback) {
 
 Colu.prototype.sendAsset = function (args, callback) {
   var self = this
-
+  var transmit = args.transmit !== false
+  var financeTxid
   async.waterfall([
     // Build finance transaction.
     function (cb) {
@@ -236,10 +259,17 @@ Colu.prototype.sendAsset = function (args, callback) {
       self.buildTransaction('send', args, cb)
     },
     function (assetInfo, cb) {
+      financeTxid = assetInfo.financeTxid
+      if (!transmit) {
+        return self.sign(assetInfo.txHex, cb)
+      }
       self.signAndTransmit(assetInfo, cb)
     },
-    function (assetInfo, cb) {
-      cb(null, assetInfo)
+    function (res, cb) {
+      if (!transmit) {
+        return cb(null, {financeTxid: financeTxid, signedTxHex: res})
+      }
+      cb(null, res)
     }
   ],
   callback)
@@ -247,6 +277,8 @@ Colu.prototype.sendAsset = function (args, callback) {
 
 Colu.prototype.burnAsset = function (args, callback) {
   var self = this
+  var transmit = args.transmit !== false
+  var financeTxid
   args.transfer = args.transfer || []
 
   async.waterfall([
@@ -271,10 +303,17 @@ Colu.prototype.burnAsset = function (args, callback) {
       self.buildTransaction('burn', args, cb)
     },
     function (assetInfo, cb) {
+      financeTxid = assetInfo.financeTxid
+      if (!transmit) {
+        return self.sign(assetInfo.txHex, cb)
+      }
       self.signAndTransmit(assetInfo, cb)
     },
-    function (ans, cb) {
-      cb(null, ans)
+    function (res, cb) {
+      if (!transmit) {
+        return cb(null, {financeTxid: financeTxid, signedTxHex: res})
+      }
+      cb(null, res)
     }
   ],
   callback)
