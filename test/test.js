@@ -47,8 +47,8 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast issue tx.', function (done) {
-    this.timeout(100000)
-    var args = testUtils.createIssueAssetArgs();
+    this.timeout(20000)
+    var args = testUtils.createIssueAssetArgs()
     colu.issueAsset(args, function (err, ans) {
       if (err) return done(err)
       assetId = ans.assetId
@@ -70,56 +70,53 @@ describe('Test Colu SDK', function () {
   it('Should burn amount of assets from utxo.', function (done) {
     this.timeout(100000)
     var args = testUtils.createBurnAssetFromUtxoArgs()
-    var assetDataArgs = {assetId: assetId}
-    var assetTotalAmount
+    var totalSupply
     async.waterfall([
       function (cb) {
-        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+        colu.getAssetMetadata(assetId, null, cb)
       },
       function (data, cb) {
-        assetTotalAmount = data.assetTotalAmount
+        totalSupply = data.totalSupply
         colu.burnAsset(args, cb)
       },
       function (data, cb) {
         testUtils.verifyBurnAssetResponse(data)
-        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+        colu.getAssetMetadata(assetId, null, cb)
       }
     ],
     function (err, data) {
       if (err) return done(err)
-      expect(data.assetTotalAmount).to.equal(assetTotalAmount - _.sumBy(args.burn, 'amount'))
-      done()      
+      expect(data.totalSupply).to.equal(totalSupply - _.sumBy(args.burn, 'amount'))
+      done()
     })
   })
 
   it('Should burn amount of assets from address.', function (done) {
-    this.timeout(100000)
+    this.timeout(20000)
     var args = testUtils.createBurnAssetFromAddressArgs()
-    var assetDataArgs = {assetId: assetId}
-    var assetTotalAmount
+    var totalSupply
     async.waterfall([
       function (cb) {
-        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+        colu.getAssetMetadata(assetId, null, cb)
       },
       function (data, cb) {
-        assetWalletAmount = data.assetAmount
-        assetTotalAmount = data.assetTotalAmount
+        totalSupply = data.totalSupply
         colu.burnAsset(args, cb)
       },
       function (data, cb) {
         testUtils.verifyBurnAssetResponse(data)
-        colu.coloredCoins.getAssetData(assetDataArgs, cb)
+        colu.getAssetMetadata(assetId, null, cb)
       }
     ],
     function (err, data) {
       if (err) return done(err)
-      expect(data.assetTotalAmount).to.equal(assetTotalAmount - _.sumBy(args.burn, 'amount'))
-      done()      
+      expect(data.totalSupply).to.equal(totalSupply - _.sumBy(args.burn, 'amount'))
+      done()
     })
   })
 
   it('Should create and broadcast send tx from utxo.', function (done) {
-    this.timeout(100000)
+    this.timeout(20000)
     var args = testUtils.createSendAssetFromUtxoArgs()
     colu.sendAsset(args, function (err, ans) {
       if (err) return done(err)
@@ -129,8 +126,8 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast send tx from address.', function (done) {
-    this.timeout(100000)
-    var args = testUtils.createSendAssetFromAddressArgs();
+    this.timeout(20000)
+    var args = testUtils.createSendAssetFromAddressArgs()
     colu.sendAsset(args, function (err, ans) {
       if (err) return done(err)
       testUtils.verifySendAssetResponse(ans)
@@ -139,8 +136,8 @@ describe('Test Colu SDK', function () {
   })
 
   it('Should create and broadcast send tx to phone.', function (done) {
-    this.timeout(100000)
-    var args = testUtils.createSendAssetToPhoneArgs();
+    this.timeout(20000)
+    var args = testUtils.createSendAssetToPhoneArgs()
     colu.sendAsset(args, function (err, ans) {
       if (err) return done(err)
       testUtils.verifySendAssetResponse(ans)
@@ -187,7 +184,7 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it ('Should return new transaction secure.', function (done) {
+  it('Should return new transaction secure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = true
 
@@ -206,7 +203,7 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it ('Should return new transaction unsecure.', function (done) {
+  it('Should return new transaction unsecure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = false
 
@@ -225,7 +222,7 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it ('Should return new cc transaction secure.', function (done) {
+  it('Should return new cc transaction secure.', function (done) {
     this.timeout(100000)
 
     colu.eventsSecure = true
@@ -244,10 +241,10 @@ describe('Test Colu SDK', function () {
     })
   })
 
-  it ('Should return new cc transaction unsecure.', function (done) {
+  it('Should return new cc transaction unsecure.', function (done) {
     this.timeout(100000)
     colu.eventsSecure = false
-    
+
     var txids = []
     var txid
     var once = 0
@@ -262,5 +259,4 @@ describe('Test Colu SDK', function () {
       if (txid && ~txids.indexOf(txid) && !once++) return done()
     })
   })
-
 })
