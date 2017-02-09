@@ -38,7 +38,7 @@ By default it will be hosted at : 127.0.0.1:80 and will be locked to local host 
 ### Testing
 
 ```sh
-$ mocha
+$ npm test
 ```
 
 ### Docker

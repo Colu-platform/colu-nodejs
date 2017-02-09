@@ -12,7 +12,6 @@ var sendingMethods = ['address', 'phone_number', 'phoneNumber', 'facebook', 'fac
 
 var Colu = function (settings) {
   var self = this
-  self.initiated = false
   settings = settings || {}
   if (settings.network === 'testnet') {
     settings.coluHost = self.coluHost = settings.coluHost || testnetColuHost
@@ -35,14 +34,16 @@ Colu.createNewKey = ColoredCoins.createNewKey
 Colu.prototype.init = function (cb) {
   var self = this
 
-  self.coloredCoins.once('connect', function () {
-    self.emit('connect')
-  })
-  self.coloredCoins.on('error', function () {
+  function handleError (err) {
     self.emit('error')
-  })
+    if (cb) return cb(err)
+  }
 
-  self.coloredCoins.init()
+  self.coloredCoins.init(function (err) {
+    if (err) return handleError(err)
+    self.emit('connect')
+    if (cb) cb()
+  })
 }
 
 Colu.prototype.buildTransaction = function (type, args, cb) {
