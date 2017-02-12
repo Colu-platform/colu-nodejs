@@ -1,21 +1,15 @@
-env:
-  global:
-    - COLU_SDK_NETWORK=testnet COLU_SDK_COLU_HOST=https://testnet-engine.colu.co COLU_SDK_RPC_USE_SSL=false
-  matrix:
-    #"node" is the latest version
-    - TRAVIS_NODE_VERSION="node"
-    - TRAVIS_NODE_VERSION="4.4.6"
-    - TRAVIS_NODE_VERSION="iojs"
-    - TRAVIS_NODE_VERSION="0.12"
+language: node_js
+node_js:
+  - stable
+  - '4.6.1'
 os:
   - linux
   - osx
 before_install:
-  # nvm is not yet supported on osx, manually install
-  - git clone https://github.com/creationix/nvm.git /tmp/.nvm
-  - source /tmp/.nvm/nvm.sh
-  - nvm install $TRAVIS_NODE_VERSION
-  - nvm use --delete-prefix $TRAVIS_NODE_VERSION
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone https://github.com/creationix/nvm.git /tmp/.nvm; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source /tmp/.nvm/nvm.sh; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then nvm install $TRAVIS_NODE_VERSION; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then nvm use --delete-prefix $TRAVIS_NODE_VERSION; fi
 install:
   - npm install
 before_script:
