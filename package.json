@@ -9,8 +9,9 @@
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "browserify": "gulp browserify",
     "uglify": "uglifyjs -c -o ./client/colu.client.min.js -- ./client/colu.client.js",
+    "babel": "gulp babel",
     "client_commit": "git commit --quiet ./client -m \"browserify and uglify\" || echo \"No changes to commit\"",
-    "preversion": "npm run browserify && npm run uglify && npm run client_commit"
+    "preversion": "npm run browserify && npm run babel && npm run uglify && npm run client_commit"
   },
   "bin": {
     "colu": "bin/run.js"
@@ -50,32 +51,30 @@
     "async": "^1.3.0",
     "basic-auth": "^1.0.3",
     "body-parser": "^1.13.3",
-    "browserify": "13.0.0",
     "coloredcoins-sdk": "^0.1.3",
     "crypto-hashing": "^0.3.1",
-    "express": "^4.13.3",
+    "express": "^4.14.1",
     "jsonfile": "^2.2.1",
-    "mkpath": "^0.1.0",
+    "mkpath": "^1.0.0",
     "morgan": "^1.6.1",
     "node-express-json-rpc2-async": "^1.0.2",
     "path-extra": "^1.0.3",
     "request": "2.69.0",
     "should": "^8.1.1",
     "socket.io-client": "^1.3.7",
-    "supertest": "^1.1.0",
-    "uglify-js": "^2.5.0"
+    "supertest": "^1.1.0"
   },
   "devDependencies": {
-    "browserify": "13.0.0",
+    "babel-preset-es2015": "^6.22.0",
+    "browserify": "14.0.0",
     "chai": "^3.0.0",
     "cross-env": "^3.1.4",
     "gulp": "^3.9.1",
-    "gulp-uglify": "^1.5.4",
+    "gulp-babel": "^6.1.2",
     "istanbul": "^0.3.22",
     "lodash": "^4.16.6",
     "mocha": "^2.2.4",
     "portfinder": "^0.4.0",
-    "uglify": "^0.1.5",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0"
   }
