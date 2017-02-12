@@ -3,7 +3,7 @@ var events = require('events')
 var async = require('async')
 var request = require('request')
 
-var ColoredCoins = require('coloredcoins')
+var ColoredCoins = require('coloredcoins-sdk')
 
 var mainnetColuHost = 'https://engine.colu.co'
 var testnetColuHost = 'https://testnet-engine.colu.co'
