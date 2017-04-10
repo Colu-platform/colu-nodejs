@@ -77,6 +77,9 @@ Colu.prototype.signAndTransmit = function (assetInfo, callback) {
   ],
   function (err, resp) {
     if (err) return callback(err)
+    if (!resp.txid2 || !resp.txid2.txid) {
+      return callback('Unexpected response from Colu engine')
+    }
     assetInfo.txid = resp.txid2.txid
     callback(null, assetInfo)
   })
@@ -86,18 +89,8 @@ Colu.prototype.sign = function (txHex, callback) {
   this.hdwallet.sign(txHex, callback)
 }
 
-Colu.prototype.transmit = function (signedTxHex, lastTxid, attempts, callback) {
+Colu.prototype.transmit = function (signedTxHex, lastTxid, callback) {
   var self = this
-  if (typeof attempts === 'function') {
-    callback = attempts
-    attempts = 0
-  }
-  if (attempts >= 10) {
-    return callback('Cannot transmit the transaction')
-  }
-  if (attempts) {
-    console.log('trying to transmit for the ' + (attempts + 1) + ' attempts')
-  }
   var dataParams = {
     last_txid: lastTxid,
     tx_hex: signedTxHex
@@ -106,10 +99,7 @@ Colu.prototype.transmit = function (signedTxHex, lastTxid, attempts, callback) {
   request.post(path, { json: dataParams }, function (err, response, body) {
     if (err) return callback(err)
     if (!response || response.statusCode !== 200) {
-      var assetInfo = body.assetInfo
-      if (assetInfo) {
-        return self.transmit(assetInfo.txHex, assetInfo.financeTxid, attempts + 1, callback)
-      }
+      return callback(body)
     }
     callback(null, body)
   })
